@@ -1,101 +1,81 @@
+/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable no-lone-blocks */
+/* eslint-disable import/no-cycle */
+
 // A helpers to send transaction
 
-import { ethers } from 'ethers';
+import { ethers, Signature } from 'ethers';
 import invariant from 'invariant';
-import { useAtomValue } from 'jotai';
-import { routerAtom, signerAddressAtom, signerAtom } from './common';
-import {
-  fromTokenAllowanceAtom,
-  fromTokenContractAtom,
-  lpAllowanceAtom,
-  pairAtom,
-  stakingAllowanceAtom,
-  stakingAtom,
-} from './token';
+import { LP__factory } from '../typechain';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export async function sendTx__approveFromToken() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signer = useAtomValue(signerAtom);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signerAddress = useAtomValue(signerAddressAtom);
+const PERMIT_TYPE = [
+  { name: 'owner', type: 'address' },
+  { name: 'spender', type: 'address' },
+  { name: 'value', type: 'uint256' },
+  { name: 'nonce', type: 'uint256' },
+  { name: 'deadline', type: 'uint256' },
+];
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const fromTokenAllowance = useAtomValue(fromTokenAllowanceAtom);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function generateSignature(
+  signer: ethers.providers.JsonRpcSigner,
+  spender: string,
+  tokenAddress: string,
+): Promise<Signature> {
+  const { chainId } = await signer.provider.getNetwork();
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const fromTokenContract = useAtomValue(fromTokenContractAtom);
+  const tokenContract = LP__factory.connect(tokenAddress, signer);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const router = useAtomValue(routerAtom);
+  const params: Parameters<typeof signer._signTypedData> = [
+    {
+      name: await tokenContract.name(),
+      version: '1',
+      chainId,
+      verifyingContract: tokenContract.address,
+    },
+    {
+      Permit: PERMIT_TYPE,
+    },
+    {
+      owner: signer.getAddress(),
+      spender,
+      value: ethers.constants.MaxUint256,
+      nonce: await tokenContract.nonces(signer.getAddress()),
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      deadline: await getDeadline(signer),
+    },
+  ];
 
-  invariant(signer, 'signer is not initialized');
-  invariant(signerAddress, 'signerAddress is not initialized');
-  invariant(fromTokenAllowance, 'fromTokenAllowance is not initialized');
-  invariant(fromTokenContract, 'fromTokenContract is not initialized');
-  invariant(router, 'router is not initialized');
-
-  // short circuit if already approved
-  if (fromTokenAllowance.eq(0)) return;
-
-  // approve token
-  await fromTokenContract
-    .connect(signer)
-    .approve(router.address, ethers.constants.MaxUint256);
+  // eslint-disable-next-line no-underscore-dangle
+  const signature = await signer._signTypedData(...params);
+  return ethers.utils.splitSignature(signature);
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export async function sendTx__approveLP() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signer = useAtomValue(signerAtom);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signerAddress = useAtomValue(signerAddressAtom);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const lpAllowance = useAtomValue(lpAllowanceAtom);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const pair = useAtomValue(pairAtom);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const router = useAtomValue(routerAtom);
-
-  invariant(signer, 'signer is not initialized');
-  invariant(signerAddress, 'signerAddress is not initialized');
-  invariant(lpAllowance, 'lpAllowance is not initialized');
-  invariant(pair, 'pair is not initialized');
-  invariant(router, 'router is not initialized');
-
-  // approve token
-  await pair
-    .connect(signer)
-    .approve(router.address, ethers.constants.MaxUint256);
+export async function getDeadline(
+  signer: ethers.providers.JsonRpcSigner,
+  offsetSec = 60 * 4, // 4 min
+): Promise<number> {
+  invariant(signer, 'signor is not initialized');
+  const latestBlock = await signer.provider.getBlock('latest');
+  return latestBlock.timestamp + offsetSec;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export async function sendTx__approveSTK() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signer = useAtomValue(signerAtom);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const signerAddress = useAtomValue(signerAddressAtom);
+export async function isTokenSupportPermit(
+  signer: ethers.providers.JsonRpcSigner,
+  tokenAddress: string,
+) {
+  if (tokenAddress === ethers.constants.AddressZero) return false;
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const stakingAllowance = useAtomValue(stakingAllowanceAtom);
+  const tokenContract = LP__factory.connect(tokenAddress, signer);
+  const permitable = await tokenContract
+    .PERMIT_TYPEHASH()
+    .then(
+      (res) =>
+        res ===
+        '0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9',
+    )
+    .catch(() => false);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const staking = useAtomValue(stakingAtom);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const router = useAtomValue(routerAtom);
-
-  invariant(signer, 'signer is not initialized');
-  invariant(signerAddress, 'signerAddress is not initialized');
-  invariant(stakingAllowance, 'stakingAllowance is not initialized');
-  invariant(staking, 'staking is not initialized');
-  invariant(router, 'router is not initialized');
-
-  // approve token
-  await staking
-    .connect(signer)
-    .approve(router.address, ethers.constants.MaxUint256);
+  return permitable;
 }
