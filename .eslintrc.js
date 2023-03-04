@@ -7,7 +7,7 @@ module.exports = {
   root: true,
   parserOptions: {
     ecmaVersion: 2020,
-    project: ['tsconfig.json']
+    project: ['tsconfig.json'],
   },
   extends: [
     'eslint:recommended',
@@ -17,7 +17,7 @@ module.exports = {
     'plugin:prettier/recommended',
   ],
   rules: {
-    'quotes': [1, 'single'],
+    quotes: [1, 'single'],
     'react/jsx-filename-extension': [
       'error',
       { extensions: ['.js', '.jsx', '.ts', '.tsx'] },
@@ -33,6 +33,7 @@ module.exports = {
     'no-alert': 0,
     'no-nested-ternary': 0,
     'no-bitwise': 0,
+    '@typescript-eslint/no-unused-vars': 0,
   },
   settings: {
     'import/resolver': {

@@ -28,6 +28,7 @@ const DEFAULT_LOGO_URL =
   'https://tokens.1inch.io/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984.png';
 
 // CONTRACTS
+export const sortedAtom = atom<boolean>(false);
 export const pairAtom = atom<null | Pair>(null);
 export const stakingAtom = atom<null | Staking>(null);
 export type TokenState = Token & {
@@ -161,6 +162,8 @@ function createTokenWrite(
     const tokenA = fromTokenState.isETH ? WETH.address : fromTokenState.address;
     const tokenB = toTokenState.isETH ? WETH.address : toTokenState.address;
     const sorted = isSorted(tokenA, tokenB);
+    set(sortedAtom, sorted);
+
     const [token0State, token1State] = sortValueIfSorted(
       sorted,
       fromTokenState,
