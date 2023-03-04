@@ -84,8 +84,6 @@ export default function Navigation() {
     setProvider(newProvider);
   };
 
-  console.log(provider, handleConnectWallet);
-
   return (
     <div className={classes.root}>
       <img
@@ -121,7 +119,7 @@ export default function Navigation() {
         text="Connect Wallet"
         fontSize="15px"
         borderRadius="10px"
-        onClick=""
+        onClick={handleConnectWallet}
       />
     </div>
   );

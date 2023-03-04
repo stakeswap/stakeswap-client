@@ -24,6 +24,9 @@ import {
   isTokenSupportPermit,
 } from './heleprs';
 
+const DEFAULT_LOGO_URL =
+  'https://tokens.1inch.io/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984.png';
+
 // CONTRACTS
 export const pairAtom = atom<null | Pair>(null);
 export const stakingAtom = atom<null | Staking>(null);
@@ -46,26 +49,48 @@ export interface Token {
   address: string;
   decimals: number;
   symbol: string;
+  logoURI: string;
 }
 
-export const fromTokenAtom: WritableAtom<Token | null, [Token], void> = atom<
-  null | Token,
+export const ETH = {
+  symbol: 'ETH',
+  name: 'Ethereum',
+  decimals: 18,
+  address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  logoURI:
+    'https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png',
+  tags: ['native', 'PEG:ETH'],
+};
+export const USDC = {
+  symbol: 'USDC',
+  name: 'USD Coin',
+  address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  decimals: 6,
+  logoURI:
+    'https://tokens.1inch.io/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.png',
+  eip2612: true,
+  domainVersion: '2',
+  tags: ['tokens', 'PEG:USD'],
+};
+
+export const fromTokenAtom: WritableAtom<Token, [Token], void> = atom<
+  Token,
   [Token],
   void
 >(
-  null,
+  ETH,
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
   createTokenWrite(() => ({
     tokenAtom: fromTokenAtom,
     tokenStateAtom: fromTokenStateAtom,
   })),
 );
-export const toTokenAtom: WritableAtom<Token | null, [Token], void> = atom<
-  null | Token,
+export const toTokenAtom: WritableAtom<Token, [Token], void> = atom<
+  Token,
   [Token],
   void
 >(
-  null,
+  USDC,
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
   createTokenWrite(() => ({
     tokenAtom: toTokenAtom,
@@ -90,7 +115,9 @@ function createTokenWrite(
     invariant(signer, 'signer must not be null');
 
     set(tokenAtom, token);
-    const isETH = token.address === ethers.constants.AddressZero;
+    const isETH =
+      token.address === ethers.constants.AddressZero ||
+      token.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     const router = get(routerAtom)!;
 
     // load token state
@@ -118,11 +145,11 @@ function createTokenWrite(
     set(tokenStateAtom, tokenState);
 
     // if all token data is provided, fetch pair, staking state
-    const fromToken = get(fromTokenAtom);
-    const toToken = get(toTokenAtom);
+    const fromTokenState = get(fromTokenStateAtom);
+    const toTokenState = get(toTokenStateAtom);
 
     // short circuit if one of token is not supplied
-    if (!fromToken || !toToken) {
+    if (!fromTokenState || !toTokenState) {
       console.log('A pair of tokens should be supplied');
       return;
     }
@@ -131,14 +158,15 @@ function createTokenWrite(
     const WETH = get(WETHAtom)!;
     const factory = await get(factoryAtom)!;
 
-    const tokenA =
-      fromToken.address === ethers.constants.AddressZero
-        ? WETH.address
-        : fromToken.address;
-    const tokenB =
-      toToken.address === ethers.constants.AddressZero
-        ? WETH!.address
-        : toToken.address;
+    const tokenA = fromTokenState.isETH ? WETH.address : fromTokenState.address;
+    const tokenB = toTokenState.isETH ? WETH.address : toTokenState.address;
+    const sorted = isSorted(tokenA, tokenB);
+    const [token0State, token1State] = sortValueIfSorted(
+      sorted,
+      fromTokenState,
+      toTokenState,
+    );
+
     const pairAddress = await factory.getPair(tokenA, tokenB);
 
     // short circuit if pair doesn't exist
@@ -150,8 +178,9 @@ function createTokenWrite(
     set(lpTokenStateAtom, {
       address: pairAddress,
       decimals: 18,
-      symbol: `LP-${fromToken.symbol}-${toToken.symbol}`,
+      symbol: `LP-${fromTokenState.symbol}-${toTokenState.symbol}`,
       isETH: false,
+      logoURI: DEFAULT_LOGO_URL,
       ...(await loadTokenBalance(false, pair)),
     });
 
@@ -162,8 +191,9 @@ function createTokenWrite(
     set(stakingTokenStateAtom, {
       address: stakingAddress,
       decimals: 18,
-      symbol: `STK-${fromToken.symbol}-${toToken.symbol}`,
+      symbol: `STK-${token0State.symbol}-${token1State.symbol}`,
       isETH: false,
+      logoURI: DEFAULT_LOGO_URL,
       ...(await loadTokenBalance(false, staking)),
     });
 
@@ -177,7 +207,7 @@ function createTokenWrite(
     });
 
     // TEST PURPOSE....
-    await runTestScenario(get, set);
+    // await runTestScenario(get, set);
   };
 }
 
@@ -379,7 +409,24 @@ async function runTestScenario(get: Getter, set: Setter) {
   // );
 }
 
-function sortValueIfSorted<T>(sorted: boolean, valueA: T, valueB: T): [T, T] {
+export function sortValueIfSorted<T>(
+  sorted: boolean,
+  valueA: T,
+  valueB: T,
+): [T, T] {
   if (sorted) return [valueA, valueB];
   return [valueB, valueA];
+}
+
+export function isSorted(token0: string, token1: string) {
+  return token0.toLowerCase() < token1.toLowerCase();
+}
+
+export function sortValue<T>(
+  token0: string,
+  token1: string,
+  valueA: T,
+  valueB: T,
+): [T, T] {
+  return sortValueIfSorted(isSorted(token0, token1), valueA, valueB);
 }

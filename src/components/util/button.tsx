@@ -3,9 +3,11 @@ import React from 'react';
 import { Button, Typography } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 // utils
+import { useAtom } from 'jotai';
 import { primary, purple } from './colors';
 // resources
 import TOKENLIST from '../../resources/token-list.json';
+import { fromTokenAtom, Token } from '../../contracts';
 
 interface PrimaryContainedButtonProps {
   width: string;
@@ -36,6 +38,7 @@ interface OutlinedButtonProps {
 
 interface TokenSearchButtonProps {
   backgroundColor: string;
+  tokenAtom: typeof fromTokenAtom;
   onClick: () => void;
 }
 
@@ -117,7 +120,8 @@ export function OutlinedButton(props: OutlinedButtonProps) {
 }
 
 export function TokenSearchButton(props: TokenSearchButtonProps) {
-  const { backgroundColor, onClick } = props;
+  const { backgroundColor, tokenAtom, onClick } = props;
+  const [token, setToken] = useAtom(tokenAtom);
 
   return (
     <Button
@@ -135,10 +139,7 @@ export function TokenSearchButton(props: TokenSearchButtonProps) {
     >
       <img
         style={{ width: '20px', height: '20px', marginRight: '8px' }}
-        src={
-          TOKENLIST.tokenObject['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee']
-            .logoURI
-        }
+        src={token.logoURI}
         alt="token-logo"
       />
       <Typography
@@ -148,10 +149,7 @@ export function TokenSearchButton(props: TokenSearchButtonProps) {
           fontWeight: 'bold',
         }}
       >
-        {
-          TOKENLIST.tokenObject['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee']
-            .symbol
-        }
+        {token.symbol}
       </Typography>
       <KeyboardArrowDownIcon />
     </Button>

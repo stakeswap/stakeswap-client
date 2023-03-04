@@ -14,7 +14,7 @@ import {
   WETHInterface__factory,
 } from '../typechain';
 // eslint-disable-next-line import/no-cycle
-import { fromTokenAtom, toTokenAtom } from './token';
+import { ETH, fromTokenAtom, toTokenAtom, USDC } from './token';
 
 console.log('DEPLOYMENT', DEPLOYMENT);
 
@@ -36,7 +36,7 @@ export const providerAtom = atom<
   [ethers.providers.Web3Provider],
   void
 >(null, async (get, set, provider) => {
-  if (!provider) return;
+  invariant(provider, 'provider must not be null');
 
   // init provider, signer, chainId, deployment
   set(providerAtom, provider);
@@ -75,15 +75,7 @@ export const providerAtom = atom<
   const WETH = WETHInterface__factory.connect(await factory.WETH(), signer);
   set(WETHAtom, WETH);
 
-  // default token pair: ETH-USDC
-  set(fromTokenAtom, {
-    address: ethers.constants.AddressZero,
-    decimals: 18,
-    symbol: 'ETH',
-  });
-  set(toTokenAtom, {
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    decimals: 6,
-    symbol: 'USDC',
-  });
+  // // default token pair: ETH-USDC
+  set(fromTokenAtom, ETH);
+  set(toTokenAtom, USDC);
 });

@@ -1,4 +1,6 @@
 import { FormControlLabel, Switch, Typography } from '@mui/material';
+import { formatUnits } from 'ethers/lib/utils';
+import { useAtom } from 'jotai';
 import React, { useState } from 'react';
 import TokenSearchModal from '../../components/TokenSearchModal';
 import {
@@ -6,11 +8,24 @@ import {
   TokenSearchButton,
 } from '../../components/util/button';
 import { primary, secondary } from '../../components/util/colors';
+import {
+  fromTokenAtom,
+  fromTokenStateAtom,
+  toTokenAtom,
+  toTokenStateAtom,
+} from '../../contracts';
 
 export default function AddPool() {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const [fromTokenState] = useAtom(fromTokenStateAtom);
+  const [toTokenState] = useAtom(toTokenStateAtom);
+
+  const [fromTokenAmountInput, setFromTokenAmountInput] = useState('0');
+  const [toTokenAmountInput, toFromTokenAmountInput] = useState('0');
+
   return (
     <div
       style={{ marginTop: '90px', display: 'flex', justifyContent: 'center' }}
@@ -61,7 +76,7 @@ export default function AddPool() {
             <Typography
               style={{ lineHeight: '36px', fontSize: '36px', opacity: '0.5' }}
             >
-              0
+              {fromTokenAmountInput}
             </Typography>
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
@@ -76,12 +91,19 @@ export default function AddPool() {
               alignItems: 'end',
             }}
           >
-            <TokenSearchButton backgroundColor="white" onClick={handleOpen} />
+            <TokenSearchButton
+              tokenAtom={fromTokenAtom}
+              backgroundColor="white"
+              onClick={handleOpen}
+            />
             <TokenSearchModal open={open} handleClose={handleClose} />
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
             >
-              Balance: 0
+              Balance:{' '}
+              {fromTokenState
+                ? formatUnits(fromTokenState.balance, fromTokenState.decimals)
+                : '0'}
             </Typography>
           </div>
         </div>
@@ -108,7 +130,7 @@ export default function AddPool() {
             <Typography
               style={{ lineHeight: '36px', fontSize: '36px', opacity: '0.5' }}
             >
-              0
+              {toTokenAmountInput}
             </Typography>
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
@@ -123,12 +145,19 @@ export default function AddPool() {
               alignItems: 'end',
             }}
           >
-            <TokenSearchButton backgroundColor="white" onClick={handleOpen} />
+            <TokenSearchButton
+              tokenAtom={toTokenAtom}
+              backgroundColor="white"
+              onClick={handleOpen}
+            />
             <TokenSearchModal open={open} handleClose={handleClose} />
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
             >
-              Balance: 0
+              Balance:{' '}
+              {toTokenState
+                ? formatUnits(toTokenState.balance, toTokenState.decimals)
+                : '0'}
             </Typography>
           </div>
         </div>

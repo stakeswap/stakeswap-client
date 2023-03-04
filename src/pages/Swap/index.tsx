@@ -1,16 +1,27 @@
 import React, { useState } from 'react';
 import { Typography } from '@mui/material';
+import { useAtom } from 'jotai';
+import { formatUnits } from 'ethers/lib/utils';
 import { secondary } from '../../components/util/colors';
 import TokenSearchModal from '../../components/TokenSearchModal';
 import {
   PrimaryContainedButton,
   TokenSearchButton,
 } from '../../components/util/button';
+import {
+  fromTokenAtom,
+  fromTokenStateAtom,
+  toTokenAtom,
+  toTokenStateAtom,
+} from '../../contracts';
 
 function Swap() {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const [fromTokenState] = useAtom(fromTokenStateAtom);
+  const [toTokenState] = useAtom(toTokenStateAtom);
 
   return (
     <div
@@ -63,12 +74,19 @@ function Swap() {
               alignItems: 'end',
             }}
           >
-            <TokenSearchButton backgroundColor="white" onClick={handleOpen} />
+            <TokenSearchButton
+              tokenAtom={fromTokenAtom}
+              backgroundColor="white"
+              onClick={handleOpen}
+            />
             <TokenSearchModal open={open} handleClose={handleClose} />
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
             >
-              Balance: 0
+              Balance:{' '}
+              {fromTokenState
+                ? formatUnits(fromTokenState.balance, fromTokenState.decimals)
+                : '0'}
             </Typography>
           </div>
         </div>
@@ -97,12 +115,19 @@ function Swap() {
               alignItems: 'end',
             }}
           >
-            <TokenSearchButton backgroundColor="white" onClick={handleOpen} />
+            <TokenSearchButton
+              tokenAtom={toTokenAtom}
+              backgroundColor="white"
+              onClick={handleOpen}
+            />
             <TokenSearchModal open={open} handleClose={handleClose} />
             <Typography
               style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
             >
-              Balance: 0
+              Balance:{' '}
+              {toTokenState
+                ? formatUnits(toTokenState.balance, toTokenState.decimals)
+                : '0'}
             </Typography>
           </div>
         </div>
