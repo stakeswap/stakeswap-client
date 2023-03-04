@@ -9,6 +9,7 @@ import { BigNumber, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import invariant from 'invariant';
 import { atom, Getter, PrimitiveAtom, Setter, WritableAtom } from 'jotai';
+import { atomWithStorage } from 'jotai/utils';
 import {
   LP__factory,
   Pair,
@@ -30,6 +31,7 @@ import {
   generateSignature,
   getDeadline,
   isTokenSupportPermit,
+  splitSignature,
 } from './heleprs';
 
 const DEFAULT_LOGO_URL =
@@ -48,23 +50,144 @@ export type TokenState = Token & {
   isSTK?: boolean;
 };
 
-// PERMIT SIGNATURE FOR LP AND STK
-export type PermitMapType = {
-  [token: string]: {
-    [nonce: string]: Signature;
-  };
-};
-export const permitMapAtom = atom<PermitMapType>({});
-
 export function getPermitNonce(
   signer: ethers.providers.JsonRpcSigner,
   token: string,
 ) {
   return LP__factory.connect(token, signer)
     .nonces(signer.getAddress())
-    .then((n) => n.toHexString());
-  // return '0';
+    .then((n) => n.toString())
+    .then((res) => {
+      return res;
+    });
 }
+
+const signatureKey = (token: string) => `permit-signature-${token}`;
+
+function readPermitSignatureFromLocalStorage(
+  token: string,
+): string | undefined {
+  const str = localStorage.getItem(signatureKey(token));
+  if (!str) return undefined;
+  return JSON.parse(str);
+}
+
+function writePermitSignatureFromLocalStorage(
+  token: string,
+  sig: string | undefined,
+) {
+  const key = signatureKey(token);
+  if (!sig) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, sig);
+  }
+}
+
+const stakingPermitSigPendingAtom = atom<boolean>(false);
+
+export const stakingPermitSigLocalStorageAtom = atom<string | undefined>(
+  undefined,
+);
+
+export const write__stakingPermitSigLocalStorageAtom = atom<
+  undefined,
+  [],
+  void
+>(undefined, async (get, set): Promise<undefined> => {
+  console.log('write__stakingPermitSigLocalStorageAtom setting...');
+
+  const signer = get(signerAtom);
+  const stakingTokenState = get(stakingTokenStateAtom);
+  const router = get(routerAtom);
+  const fromTokenState = get(fromTokenStateAtom);
+  const toTokenState = get(toTokenStateAtom);
+  const WETH = get(WETHAtom);
+
+  if (
+    !signer ||
+    !stakingTokenState ||
+    !router ||
+    !fromTokenState ||
+    !WETH ||
+    !toTokenState
+  ) {
+    console.log(
+      'write__stakingPermitSigLocalStorageAtom -- something is missing',
+    );
+
+    return undefined;
+  }
+
+  // short circuit if already approved
+  if (stakingTokenState.approved) {
+    console.log('write__stakingPermitSigLocalStorageAtom -- already approved');
+
+    return undefined;
+  }
+
+  // short circuit if have no STK at all
+  if (stakingTokenState.balance.eq(0)) {
+    console.log('write__stakingPermitSigLocalStorageAtom -- no STK at all');
+
+    return undefined;
+  }
+
+  const isPending = get(stakingPermitSigPendingAtom);
+  if (isPending) {
+    console.log('write__stakingPermitSigLocalStorageAtom -- pending');
+
+    return undefined;
+  }
+
+  set(stakingPermitSigPendingAtom, true);
+
+  const testSig = async (sig: string) => {
+    const res = await router.callStatic
+      .unstakeWithPermit(
+        fromTokenState.isETH ? WETH.address : fromTokenState.address,
+        toTokenState.isETH ? WETH.address : toTokenState.address,
+        stakingTokenState.balance,
+        getDeadline(signer),
+        true,
+        ...splitSignature(sig),
+      )
+      .catch(() => undefined);
+
+    // return with setting valid unstaking state
+    if (res) {
+      set(unstakingDataAtom, res);
+      set(stakingPermitSigPendingAtom, false);
+      set(stakingPermitSigLocalStorageAtom, sig);
+      return true;
+    }
+    console.log(' - invalid signature', ethers.utils.joinSignature(sig));
+    return false;
+  };
+
+  const prevSig = get(stakingPermitSigLocalStorageAtom);
+
+  // try prev sig is valid
+  if (prevSig) {
+    console.log('testing previous signature');
+    if (await testSig(prevSig)) return undefined;
+  }
+
+  // now prev sig is not valid. try to get new signature
+  const sig = await generateSignature(
+    signer,
+    router.address,
+    stakingTokenState.address,
+  );
+
+  console.log('test new sig');
+  if (await testSig(sig)) {
+    set(stakingPermitSigLocalStorageAtom, sig);
+  }
+
+  set(stakingPermitSigPendingAtom, false);
+  return undefined;
+});
 
 // PAIR STATE
 export const pairStateAtom = atom<null | {
@@ -90,7 +213,6 @@ export const stakingStateAtom = atom<
   void
 >(null, async (get, set, stakingState) => {
   set(stakingStateAtom, stakingState);
-  console.log('updating stakingStateAtom...');
 
   // load unstaking data
   const signer = get(signerAtom);
@@ -99,7 +221,7 @@ export const stakingStateAtom = atom<
   const toTokenState = get(toTokenStateAtom);
   const stakingTokenState = get(stakingTokenStateAtom);
   const WETH = get(WETHAtom);
-  const permitMap = get(permitMapAtom);
+  const stakingPermitSigLocalStorage = get(stakingPermitSigLocalStorageAtom);
 
   if (
     !signer ||
@@ -109,20 +231,13 @@ export const stakingStateAtom = atom<
     !WETH ||
     !stakingTokenState
   ) {
-    console.log('not specified...');
     return;
   }
 
-  const nonce = await getPermitNonce(signer, stakingTokenState.address);
-  const stakingPermitSig = (permitMap[stakingTokenState.address] ?? {})[nonce];
-  if (!stakingTokenState.approved && !stakingPermitSig) {
-    console.log('no approval data...');
-    return;
-  }
+  if (stakingTokenState.balance.eq(0)) return;
+  if (get(unstakingDataAtom)) return;
 
-  const unstakingData = stakingTokenState.balance.eq(0)
-    ? undefined
-    : stakingTokenState.approved
+  const unstakingData = stakingTokenState.approved
     ? await router.callStatic
         .unstake(
           fromTokenState.isETH ? WETH.address : fromTokenState.address,
@@ -134,7 +249,7 @@ export const stakingStateAtom = atom<
           console.error('Failed to call unstake', err);
           return undefined;
         })
-    : stakingPermitSig
+    : stakingPermitSigLocalStorage
     ? await router.callStatic
         .unstakeWithPermit(
           fromTokenState.isETH ? WETH.address : fromTokenState.address,
@@ -142,12 +257,17 @@ export const stakingStateAtom = atom<
           stakingTokenState.balance,
           getDeadline(signer),
           true,
-          stakingPermitSig.v,
-          stakingPermitSig.r,
-          stakingPermitSig.s,
+          ...splitSignature(stakingPermitSigLocalStorage),
         )
         .catch((err) => {
-          console.error('Failed to call unstakeWithPermit', err);
+          console.error(
+            'Failed to call unstakeWithPermit with signature',
+            ethers.utils.joinSignature(stakingPermitSigLocalStorage),
+          );
+          // reset signature size
+          if (err?.message?.includes('INVALID_SIGNATURE')) {
+            set(stakingPermitSigLocalStorageAtom, undefined);
+          }
           return undefined;
         })
     : undefined;
@@ -177,6 +297,7 @@ export const unstakingDataAtom = atom<null | {
   ethAmount: BigNumber; // total amount of ETH redeemd (Note that ethAmount = poolETHAmount + rewardToStaker)
   poolETHAmount: BigNumber; // amount of ETH that pool receives
   rewardToStaker: BigNumber; // amount of ETH that staker receives
+  signature?: string;
 }>(null);
 
 // TOKEN STATE
@@ -257,8 +378,8 @@ function createTokenWrite(
   },
 ) {
   return async (get: Getter, set: Setter, token: Token) => {
-    // remove unstaking data. it will be filled when stakingState is loaded
-    set(unstakingDataAtom, null);
+    // // remove unstaking data. it will be filled when stakingState is loaded
+    // set(unstakingDataAtom, null);
 
     const { tokenAtom, tokenStateAtom } = f();
     const signer = get(signerAtom)!;
@@ -300,7 +421,6 @@ function createTokenWrite(
 
     // short circuit if one of token is not supplied
     if (!fromTokenState || !toTokenState) {
-      console.log('A pair of tokens should be supplied');
       return;
     }
 
@@ -526,7 +646,7 @@ const isTestScenarioRunning = false;
 //     {
 //       // assume user stake all LP token
 //       const lpTokenState = get(lpTokenStateAtom)!;
-//       let permitMap = get(permitMapAtom)!;
+//       let stakingPermitSigLocalStorage = get(stakingPermitSigLocalStorageAtom)!;
 
 //       // 2.1 generate signature
 //       if (!lpTokenState.approved && !lpPermitSig) {

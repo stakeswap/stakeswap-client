@@ -18,39 +18,16 @@ const PERMIT_TYPE = [
   { name: 'deadline', type: 'uint256' },
 ];
 
-const sigMap: {
-  [contract: string]: {
-    [nonce: string]: {
-      pending?: boolean;
-      sig?: Signature;
-    };
-  };
-} = {};
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function generateSignature(
   signer: ethers.providers.JsonRpcSigner,
   spender: string,
   tokenAddress: string,
-): Promise<Signature> {
+): Promise<string> {
   const { chainId } = await signer.provider.getNetwork();
 
   const tokenContract = LP__factory.connect(tokenAddress, signer);
-  const nonce = (await tokenContract.nonces(signer.getAddress())).toHexString();
-
-  sigMap[tokenContract.address] = sigMap[tokenContract.address] ?? {};
-  sigMap[tokenContract.address][nonce] =
-    sigMap[tokenContract.address][nonce] ?? {};
-
-  if (sigMap[tokenContract.address][nonce].sig)
-    return sigMap[tokenContract.address][nonce].sig!;
-
-  if (sigMap[tokenContract.address][nonce].pending) {
-    await sleepWhile(() => sigMap[tokenContract.address][nonce].pending!, 300);
-    return sigMap[tokenContract.address][nonce].sig!;
-  }
-
-  sigMap[tokenContract.address][nonce].pending = true;
+  const nonce = (await tokenContract.nonces(signer.getAddress())).toString();
 
   const params: Parameters<typeof signer._signTypedData> = [
     {
@@ -74,16 +51,19 @@ export async function generateSignature(
 
   // eslint-disable-next-line no-underscore-dangle
   const signature = await signer._signTypedData(...params);
+  console.log('signature loaded: token=%s nonce=%s', tokenAddress, nonce);
 
-  sigMap[tokenContract.address][nonce].pending = false;
-  sigMap[tokenContract.address][nonce].sig =
-    ethers.utils.splitSignature(signature);
-  return sigMap[tokenContract.address][nonce].sig!;
+  return signature;
+}
+
+export function splitSignature(signature: string): [number, string, string] {
+  const s = ethers.utils.splitSignature(signature);
+  return [s.v, s.r, s.s];
 }
 
 export async function getDeadline(
   signer: ethers.providers.JsonRpcSigner,
-  offsetSec = 60 * 4, // 4 min
+  offsetSec = 60 * 60, // 1H
 ): Promise<number> {
   invariant(signer, 'signor is not initialized');
   const latestBlock = await signer.provider.getBlock('latest');

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useEffect, useState } from 'react';
 import { Typography } from '@mui/material';
 import { useHistory } from 'react-router-dom';
@@ -23,13 +24,15 @@ import {
   signerAddressAtom,
   signerAtom,
   sortedAtom,
-  permitMapAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
   toTokenStateAtom,
   WETHAtom,
   getPermitNonce,
+  write__stakingPermitSigLocalStorageAtom,
+  unstakingDataAtom,
+  stakingPermitSigLocalStorageAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import PoolBackground from '../../assets/backgrounds/pool.png';
@@ -47,7 +50,6 @@ function Pool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
-  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -56,6 +58,14 @@ function Pool() {
   const [router] = useAtom(routerAtom);
   const [pair] = useAtom(pairAtom);
   const [sorted] = useAtom(sortedAtom);
+  const [unstakingData] = useAtom(unstakingDataAtom);
+  const [stakingPermitSigLocalStorage] = useAtom(
+    stakingPermitSigLocalStorageAtom,
+  );
+
+  const [, write__stakingPermitSigLocalStorage] = useAtom(
+    write__stakingPermitSigLocalStorageAtom,
+  );
 
   useEffect(() => {
     if (!toTokenState) setToToken(toToken);
@@ -77,42 +87,14 @@ function Pool() {
     stakingState &&
     sorted !== null;
 
-  // request STK permit signature
   useEffect(() => {
-    if (!connected) return;
-    if (stakingTokenState.approved) return;
-
-    (async () => {
-      const nonce = await getPermitNonce(signer, stakingTokenState.address);
-
-      permitMap[stakingTokenState.address] =
-        permitMap[stakingTokenState.address] ?? {};
-      let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
-
-      if (!stakingTokenState.approved && !sig) {
-        sig = await generateSignature(
-          signer,
-          router.address,
-          stakingTokenState.address,
-        );
-
-        permitMap[stakingTokenState.address][nonce] = sig;
-        setPermitMap(permitMap);
-      }
-
-      // load unstaking data
-      setStakingState(stakingState);
-    })().catch(console.error);
+    if (!unstakingData && !stakingPermitSigLocalStorage)
+      write__stakingPermitSigLocalStorage();
   }, [
+    unstakingData,
+    write__stakingPermitSigLocalStorage,
+    stakingPermitSigLocalStorage,
     connected,
-    router,
-    signer,
-    stakingTokenState,
-    setStakingTokenState,
-    permitMap,
-    setPermitMap,
-    setStakingState,
-    stakingState,
   ]);
 
   const totalLPAmount =

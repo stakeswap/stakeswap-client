@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { Slider, Typography } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -21,7 +22,6 @@ import {
   signerAtom,
   sleep,
   sortedAtom,
-  permitMapAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
@@ -29,9 +29,11 @@ import {
   unstakingDataAtom,
   WETHAtom,
   getPermitNonce,
+  stakingPermitSigLocalStorageAtom,
+  write__stakingPermitSigLocalStorageAtom,
+  splitSignature,
 } from '../../contracts';
 
-import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
 
 export default function RemovePool() {
@@ -58,7 +60,12 @@ export default function RemovePool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
-  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
+
+  const [, write__stakingPermitSigLocalStorage] = useAtom(
+    write__stakingPermitSigLocalStorageAtom,
+  );
+  const [stakingPermitSigLocalStorage, setstakingPermitSigLocalStorage] =
+    useAtom(stakingPermitSigLocalStorageAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -89,41 +96,14 @@ export default function RemovePool() {
     stakingState &&
     sorted !== null;
 
-  // request STK permit signature
   useEffect(() => {
-    if (!connected) return;
-    if (stakingTokenState.approved) return;
-
-    (async () => {
-      const nonce = await getPermitNonce(signer, stakingTokenState.address);
-
-      permitMap[stakingTokenState.address] =
-        permitMap[stakingTokenState.address] ?? {};
-      let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
-
-      if (!sig) {
-        sig = await generateSignature(
-          signer,
-          router.address,
-          stakingTokenState.address,
-        );
-
-        permitMap[stakingTokenState.address][nonce] = sig;
-        setPermitMap(permitMap);
-      }
-
-      // load unstaking data
-      setStakingState(stakingState);
-    })().catch(console.error);
+    if (!unstakingData && !stakingPermitSigLocalStorage)
+      write__stakingPermitSigLocalStorage();
   }, [
+    unstakingData,
+    write__stakingPermitSigLocalStorage,
+    stakingPermitSigLocalStorage,
     connected,
-    router,
-    signer,
-    stakingTokenState,
-    permitMap,
-    setPermitMap,
-    setStakingState,
-    stakingState,
   ]);
 
   const totalLPAmount =
@@ -194,7 +174,6 @@ export default function RemovePool() {
 
   const unstakeAndremoveLiquidityWithPermit = async () => {
     if (!connected) {
-      console.log('unstakeAndremoveLiquidityWithPermit: not connected yet ');
       return;
     }
 
@@ -205,10 +184,8 @@ export default function RemovePool() {
         getDeadline(signer),
       );
     } else {
-      const nonce = await getPermitNonce(signer, stakingTokenState.address);
-      const sig = (permitMap[stakingTokenState.address] ?? {})[nonce];
+      const sig = stakingPermitSigLocalStorage;
       if (!sig) {
-        console.log('unstakeAndremoveLiquidityWithPermit: sig not provided');
         return;
       }
 
@@ -216,9 +193,7 @@ export default function RemovePool() {
         fromTokenState.isETH ? toTokenState.address : fromTokenState.address,
         stakingTokenState.balance.mul(removeAmountPercent).div(100),
         getDeadline(signer),
-        sig.v,
-        sig.r,
-        sig.s,
+        ...splitSignature(sig),
       );
     }
     setToToken(toToken); // update

@@ -25,7 +25,6 @@ import {
   generateSignature,
   getDeadline,
   getOptimalAmountsToAddLiquidity,
-  permitMapAtom,
   lpTokenStateAtom,
   pairAtom,
   pairStateAtom,
@@ -39,6 +38,7 @@ import {
   toTokenStateAtom,
   WETHAtom,
   getPermitNonce,
+  splitSignature,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
@@ -71,7 +71,6 @@ export default function AddPool() {
   const [lpTokenState] = useAtom(lpTokenStateAtom);
   const [stakingTokenState] = useAtom(stakingTokenStateAtom);
   const [pairState] = useAtom(pairStateAtom);
-  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [WETH] = useAtom(WETHAtom);
   const [router] = useAtom(routerAtom);
@@ -227,8 +226,6 @@ export default function AddPool() {
 
       if (withStaking) {
         const nonce = await getPermitNonce(signer, lpTokenState.address);
-        permitMap[lpTokenState.address] = permitMap[lpTokenState.address] ?? {};
-        let sig: null | Signature = permitMap[lpTokenState.address][nonce];
 
         if (lpTokenState.approved) {
           tx = await router.addLiquidityAndStakeETH(
@@ -240,15 +237,11 @@ export default function AddPool() {
             { value: ethAmount },
           );
         } else {
-          if (!sig) {
-            sig = await generateSignature(
-              signer,
-              router!.address,
-              lpTokenState.address,
-            );
-            permitMap[lpTokenState.address][nonce] = sig;
-            setPermitMap(permitMap);
-          }
+          const sig = await generateSignature(
+            signer,
+            router!.address,
+            lpTokenState.address,
+          );
 
           console.log('call addLiquidityAndStakeETHWithPermit');
           tx = await router!.addLiquidityAndStakeETHWithPermit(
@@ -257,9 +250,7 @@ export default function AddPool() {
             tooSmallK ? 0 : tokenAmount.mul(97).div(100),
             tooSmallK ? 0 : ethAmount.mul(97).div(100),
             await getDeadline(signer!),
-            sig.v,
-            sig.r,
-            sig.s,
+            ...splitSignature(sig),
             { value: ethAmount },
           );
         }

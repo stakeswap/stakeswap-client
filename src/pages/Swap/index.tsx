@@ -90,7 +90,6 @@ function Swap() {
         toTokenReserve,
       );
       const toTokenAmount = formatUnits(toTokenAmountBN, toTokenState.decimals);
-      console.log('quote updated: %s', toTokenAmount);
 
       setToTokenAmountInput(toTokenAmount);
     })().catch(console.error);
@@ -114,8 +113,6 @@ function Swap() {
 
     // check allowance
     if (!fromTokenState!.isETH && !fromTokenState!.approved) {
-      console.log('approve From token: %s', fromTokenState?.symbol);
-
       await ERC20__factory.connect(fromTokenState!.address, signer!).approve(
         router!.address,
         ethers.constants.MaxUint256,
@@ -129,13 +126,6 @@ function Swap() {
     const toTokenAmount = parseUnits(
       toTokenAmountInput,
       toTokenState!.decimals,
-    );
-    console.log(
-      '%s %s -> %s %s',
-      fromTokenAmountInput,
-      fromTokenState.symbol,
-      toTokenAmountInput,
-      toTokenState.symbol,
     );
 
     let tx: ContractTransaction;
