@@ -1,5 +1,5 @@
 import { Slider, Typography } from '@mui/material';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AddIcon from '@mui/icons-material/Add';
 import { useAtom } from 'jotai';
@@ -32,6 +32,19 @@ import {
 import { ERC20__factory } from '../../typechain';
 
 export default function RemovePool() {
+  const [removeAmountPercent, setRemoveAmountPercent] = useState<number>(0);
+
+  const handleRemoveAmountPercent = (
+    event: Event,
+    newValue: number | number[],
+  ) => {
+    setRemoveAmountPercent(newValue as number);
+  };
+
+  const handleRemoveAmountPercentConstant = (newValue: number) => {
+    setRemoveAmountPercent(newValue as number);
+  };
+
   const [fromToken] = useAtom(fromTokenAtom);
   const [toToken, setToToken] = useAtom(toTokenAtom);
   const [signer] = useAtom(signerAtom);
@@ -142,10 +155,6 @@ export default function RemovePool() {
           .mulUnsafe(FixedNumber.fromString('100'))
           .divUnsafe(FixedNumber.fromValue(pairState.totalSupply, 18))
           .toString();
-
-  // assume user input
-  // TODO: connect to slide bar
-  const removeAmountPercent = 100; // 100 percent
 
   // asume price
   // TODO: fetch token price from coingecko
@@ -264,13 +273,17 @@ export default function RemovePool() {
               <Typography style={{ fontSize: '12px' }}>
                 Remove Amount
               </Typography>
-              <Typography style={{ fontSize: '40px' }}>25%</Typography>
+              <Typography style={{ fontSize: '40px' }}>
+                {removeAmountPercent}%
+              </Typography>
               <Slider
                 size="small"
                 style={{ color: primary }}
                 defaultValue={0}
+                value={removeAmountPercent}
                 aria-label="Small"
                 valueLabelDisplay="auto"
+                onChange={handleRemoveAmountPercent}
               />
               <div style={{ display: 'flex' }}>
                 <div
@@ -286,6 +299,7 @@ export default function RemovePool() {
                     fontSize: '12px',
                     cursor: 'pointer',
                   }}
+                  onClick={() => handleRemoveAmountPercentConstant(25)}
                 >
                   25%
                 </div>
@@ -302,6 +316,7 @@ export default function RemovePool() {
                     fontSize: '12px',
                     cursor: 'pointer',
                   }}
+                  onClick={() => handleRemoveAmountPercentConstant(50)}
                 >
                   50%
                 </div>
@@ -318,6 +333,7 @@ export default function RemovePool() {
                     fontSize: '12px',
                     cursor: 'pointer',
                   }}
+                  onClick={() => handleRemoveAmountPercentConstant(75)}
                 >
                   75%
                 </div>
@@ -333,8 +349,9 @@ export default function RemovePool() {
                     fontSize: '12px',
                     cursor: 'pointer',
                   }}
+                  onClick={() => handleRemoveAmountPercentConstant(100)}
                 >
-                  100%
+                  MAX
                 </div>
               </div>
             </div>

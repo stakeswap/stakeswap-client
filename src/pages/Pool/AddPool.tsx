@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { debounce, FormControlLabel, Switch, Typography } from '@mui/material';
+import {
+  alpha,
+  debounce,
+  FormControlLabel,
+  styled,
+  Switch,
+  Typography,
+} from '@mui/material';
 import { BigNumber, ContractTransaction, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useAtom } from 'jotai';
@@ -32,11 +39,25 @@ import {
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 
+const PrimarySwitch = styled(Switch)(({ theme }) => ({
+  '& .MuiSwitch-switchBase.Mui-checked': {
+    color: primary,
+    '&:hover': {
+      backgroundColor: alpha(primary, theme.palette.action.hoverOpacity),
+    },
+  },
+  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+    backgroundColor: primary,
+  },
+}));
+
 export default function AddPool() {
   const history = useHistory();
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const [rewardAPR, setRewardAPR] = useState(2.63);
 
   const [toToken, setToToken] = useAtom(toTokenAtom);
   const [signer] = useAtom(signerAtom);
@@ -66,6 +87,11 @@ export default function AddPool() {
   const [toTokenAmountInput, _setToTokenAmountInput] = useState('0');
 
   const [withStaking, setWithStaking] = useState(true);
+
+  const handleWithStaking = () => {
+    setWithStaking(!withStaking);
+    setRewardAPR(0);
+  };
 
   const checkAndSetInput = debounce(
     async (value: string, isFromTokenSet: boolean) => {
@@ -243,7 +269,6 @@ export default function AddPool() {
       <div
         style={{
           width: '400px',
-          height: '800px',
           padding: '20px 40px',
           display: 'flex',
           flexDirection: 'column',
@@ -278,12 +303,20 @@ export default function AddPool() {
         >
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'start',
             }}
           >
             <input
+              style={{
+                width: '100%',
+                backgroundColor: secondary,
+                fontSize: '36PX',
+                border: 'none',
+                outline: 'none',
+              }}
               disabled={!connected}
               inputMode="numeric"
               pattern="[-+]?[0-9]*[.,]?[0-9]+"
@@ -298,6 +331,7 @@ export default function AddPool() {
           </div>
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'end',
@@ -314,7 +348,12 @@ export default function AddPool() {
             >
               Balance:{' '}
               {fromTokenState
-                ? formatUnits(fromTokenState.balance, fromTokenState.decimals)
+                ? Number(
+                    formatUnits(
+                      fromTokenState.balance,
+                      fromTokenState.decimals,
+                    ),
+                  ).toFixed(2)
                 : '0'}
             </Typography>
           </div>
@@ -334,12 +373,20 @@ export default function AddPool() {
         >
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'start',
             }}
           >
             <input
+              style={{
+                width: '100%',
+                backgroundColor: secondary,
+                fontSize: '36PX',
+                border: 'none',
+                outline: 'none',
+              }}
               disabled={!connected}
               inputMode="numeric"
               pattern="[-+]?[0-9]*[.,]?[0-9]+"
@@ -354,6 +401,7 @@ export default function AddPool() {
           </div>
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'end',
@@ -404,7 +452,7 @@ export default function AddPool() {
           >
             <Typography style={{ fontSize: '12px' }}>Total APR:</Typography>
             <Typography style={{ color: primary, fontSize: '12px' }}>
-              9.26%
+              {rewardAPR > 0 ? rewardAPR * 4 : 6.63} %
             </Typography>
           </div>
           <div
@@ -416,26 +464,31 @@ export default function AddPool() {
           >
             <Typography style={{ fontSize: '12px' }}>Fee APR:</Typography>
             <Typography style={{ color: primary, fontSize: '12px' }}>
-              6.63%
+              {rewardAPR > 0 ? rewardAPR * 3 : 6.63} %
             </Typography>
           </div>
-          <div
-            style={{
-              marginTop: '12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Typography style={{ fontSize: '12px' }}>Reward APR:</Typography>
-            <Typography style={{ color: primary, fontSize: '12px' }}>
-              2.63%
-            </Typography>
-          </div>
+          {withStaking ? (
+            <div
+              style={{
+                marginTop: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography style={{ fontSize: '12px' }}>Reward APR:</Typography>
+              <Typography style={{ color: primary, fontSize: '12px' }}>
+                {rewardAPR} %
+              </Typography>
+            </div>
+          ) : (
+            ''
+          )}
         </div>
         <FormControlLabel
-          control={<Switch defaultChecked />}
+          style={{ margin: '20px 0', color: '#575757' }}
+          control={<PrimarySwitch defaultChecked />}
           value={withStaking}
-          onChange={() => setWithStaking(!withStaking)}
+          onChange={handleWithStaking}
           label="With Staking"
         />
         <PrimaryContainedButton

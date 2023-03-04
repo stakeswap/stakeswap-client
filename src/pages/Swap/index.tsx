@@ -201,6 +201,13 @@ function Swap() {
           }}
         >
           <input
+            style={{
+              width: '50%',
+              backgroundColor: secondary,
+              fontSize: '36PX',
+              border: 'none',
+              outline: 'none',
+            }}
             disabled={!connected}
             inputMode="numeric"
             pattern="[-+]?[0-9]*[.,]?[0-9]+"
@@ -209,6 +216,7 @@ function Swap() {
           />
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'end',
@@ -225,7 +233,12 @@ function Swap() {
             >
               Balance:{' '}
               {fromTokenState
-                ? formatUnits(fromTokenState.balance, fromTokenState.decimals)
+                ? Number(
+                    formatUnits(
+                      fromTokenState.balance,
+                      fromTokenState.decimals,
+                    ),
+                  ).toFixed(2)
                 : '0'}
             </Typography>
           </div>
@@ -244,6 +257,13 @@ function Swap() {
           }}
         >
           <input
+            style={{
+              width: '50%',
+              backgroundColor: secondary,
+              fontSize: '36PX',
+              border: 'none',
+              outline: 'none',
+            }}
             disabled
             inputMode="numeric"
             pattern="[-+]?[0-9]*[.,]?[0-9]+"
@@ -252,6 +272,7 @@ function Swap() {
           />
           <div
             style={{
+              width: '50%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'end',
@@ -268,7 +289,9 @@ function Swap() {
             >
               Balance:{' '}
               {toTokenState
-                ? formatUnits(toTokenState.balance, toTokenState.decimals)
+                ? Number(
+                    formatUnits(toTokenState.balance, toTokenState.decimals),
+                  ).toFixed(2)
                 : '0'}
             </Typography>
           </div>

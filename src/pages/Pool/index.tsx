@@ -156,7 +156,6 @@ function Pool() {
             history.push('/pools/add');
           }}
         />
-        <div />
       </div>
       <div
         style={{
@@ -206,7 +205,6 @@ function Pool() {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
             alignItems: 'center',
           }}
         >
@@ -222,7 +220,6 @@ function Pool() {
           <div
             style={{
               width: '530px',
-              height: '330px',
               padding: '18px 40px',
               backgroundColor: secondary,
               borderRadius: '16px',
@@ -331,7 +328,6 @@ function Pool() {
             </div>
             <div
               style={{
-                marginBottom: '60px',
                 display: 'flex',
                 justifyContent: 'space-between',
               }}
@@ -343,7 +339,7 @@ function Pool() {
                 {sharesPercent}%
               </Typography>
             </div>
-            <PrimaryContainedButton
+            {/* <PrimaryContainedButton
               width="100%"
               height="38px"
               fontSize="18px"
@@ -352,7 +348,7 @@ function Pool() {
               onClick={() => {
                 history.push('pools/1/remove');
               }}
-            />
+            /> */}
           </div>
         </div>
       </div>

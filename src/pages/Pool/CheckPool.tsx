@@ -1,5 +1,12 @@
-import { Typography } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import {
+  FormControlLabel,
+  Switch,
+  Typography,
+  alpha,
+  styled,
+  Tooltip,
+} from '@mui/material';
+import React, { useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useAtom } from 'jotai';
 import { BigNumber, FixedNumber } from 'ethers';
@@ -8,7 +15,7 @@ import { PrimaryContainedButton } from '../../components/util/button';
 import TOKENLIST from '../../resources/token-list.json';
 import ETHUSDCPair from '../../assets/eth-usdc.png';
 import MotionGraphic from '../../assets/cooking-motion-graphic.gif';
-import { secondary } from '../../components/util/colors';
+import { primary, secondary } from '../../components/util/colors';
 import {
   fromTokenAtom,
   fromTokenStateAtom,
@@ -29,6 +36,18 @@ import {
   unstakingDataAtom,
   WETHAtom,
 } from '../../contracts';
+
+const PrimarySwitch = styled(Switch)(({ theme }) => ({
+  '& .MuiSwitch-switchBase.Mui-checked': {
+    color: primary,
+    '&:hover': {
+      backgroundColor: alpha(primary, theme.palette.action.hoverOpacity),
+    },
+  },
+  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+    backgroundColor: primary,
+  },
+}));
 
 export default function CheckPool() {
   const history = useHistory();
@@ -229,15 +248,15 @@ export default function CheckPool() {
               justifyContent: 'center',
               borderRadius: '16px',
               boxShadow:
-                'rgba(50, 50, 93, 0.25) 0px 0px 20px -20px inset, rgba(0, 0, 0, 0.3) 0px 5px 36px -18px inset',
+                'rgba(50, 50, 93, 0.25) 0px 30px 50px -20px inset, rgba(0, 0, 0, 0.3) 0px 5px 36px -18px inset',
               boxSizing: 'border-box',
             }}
           >
             <img
               style={{
-                marginTop: '40px',
+                height: '110px',
+                marginTop: '80px',
                 position: 'absolute',
-                height: '25px',
               }}
               src={ETHUSDCPair}
               alt="ETHUSDCPair"
@@ -437,6 +456,24 @@ export default function CheckPool() {
                 </div>
               </div>
             </div>
+            <Tooltip
+              title="We are waiting for Shanghai Upgrade!!!"
+              placement="top"
+              arrow
+            >
+              <div
+                style={{
+                  marginTop: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <PrimarySwitch disabled />
+                <Typography style={{ color: '#575757' }}>
+                  With Lock-up (14 days)
+                </Typography>
+              </div>
+            </Tooltip>
           </div>
         </div>
       </div>
