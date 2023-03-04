@@ -8,6 +8,7 @@
 import { ethers, Signature } from 'ethers';
 import invariant from 'invariant';
 import { LP__factory } from '../typechain';
+import { sleepWhile } from './token';
 
 const PERMIT_TYPE = [
   { name: 'owner', type: 'address' },
@@ -16,6 +17,15 @@ const PERMIT_TYPE = [
   { name: 'nonce', type: 'uint256' },
   { name: 'deadline', type: 'uint256' },
 ];
+
+const sigMap: {
+  [contract: string]: {
+    [nonce: string]: {
+      pending?: boolean;
+      sig?: Signature;
+    };
+  };
+} = {};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function generateSignature(
@@ -26,6 +36,21 @@ export async function generateSignature(
   const { chainId } = await signer.provider.getNetwork();
 
   const tokenContract = LP__factory.connect(tokenAddress, signer);
+  const nonce = (await tokenContract.nonces(signer.getAddress())).toHexString();
+
+  sigMap[tokenContract.address] = sigMap[tokenContract.address] ?? {};
+  sigMap[tokenContract.address][nonce] =
+    sigMap[tokenContract.address][nonce] ?? {};
+
+  if (sigMap[tokenContract.address][nonce].sig)
+    return sigMap[tokenContract.address][nonce].sig!;
+
+  if (sigMap[tokenContract.address][nonce].pending) {
+    await sleepWhile(() => sigMap[tokenContract.address][nonce].pending!, 300);
+    return sigMap[tokenContract.address][nonce].sig!;
+  }
+
+  sigMap[tokenContract.address][nonce].pending = true;
 
   const params: Parameters<typeof signer._signTypedData> = [
     {
@@ -41,7 +66,7 @@ export async function generateSignature(
       owner: await signer.getAddress(),
       spender,
       value: ethers.constants.MaxUint256,
-      nonce: await tokenContract.nonces(signer.getAddress()),
+      nonce,
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       deadline: await getDeadline(signer),
     },
@@ -49,7 +74,11 @@ export async function generateSignature(
 
   // eslint-disable-next-line no-underscore-dangle
   const signature = await signer._signTypedData(...params);
-  return ethers.utils.splitSignature(signature);
+
+  sigMap[tokenContract.address][nonce].pending = false;
+  sigMap[tokenContract.address][nonce].sig =
+    ethers.utils.splitSignature(signature);
+  return sigMap[tokenContract.address][nonce].sig!;
 }
 
 export async function getDeadline(

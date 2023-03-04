@@ -21,6 +21,7 @@ import {
   signerAddressAtom,
   signerAtom,
   sortedAtom,
+  stakingPermitSigAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
@@ -42,6 +43,7 @@ export default function CheckPool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
+  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -76,26 +78,27 @@ export default function CheckPool() {
   useEffect(() => {
     if (!connected) return;
 
-    if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
-      generateSignature(signer, router.address, stakingTokenState.address).then(
-        (sig) => {
-          // record signature
-          setStakingTokenState({
-            ...stakingTokenState,
-            permitSignature: sig,
-          });
-          // load unstaking data
-          setStakingState(stakingState);
-        },
+    if (stakingTokenState.approved || stakingPermitSig) return;
+
+    (async () => {
+      console.log('REQUEST PERMIT FOR STK');
+      const sig = await generateSignature(
+        signer,
+        router.address,
+        stakingTokenState.address,
       );
-    }
+      // record signature
+      setStakingPermitSig(sig);
+      // load unstaking data
+      setStakingState(stakingState);
+    })().catch(console.error);
   }, [
     connected,
     router,
     signer,
     stakingTokenState,
-    stakingTokenState?.approved,
-    stakingTokenState?.permitSignature,
+    stakingPermitSig,
+    setStakingPermitSig,
     setStakingTokenState,
     setStakingState,
     stakingState,

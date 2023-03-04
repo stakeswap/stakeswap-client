@@ -19,7 +19,9 @@ import {
   routerAtom,
   signerAddressAtom,
   signerAtom,
+  sleep,
   sortedAtom,
+  stakingPermitSigAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
@@ -40,6 +42,7 @@ export default function RemovePool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
+  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -73,34 +76,40 @@ export default function RemovePool() {
   // request STK permit signature
   useEffect(() => {
     if (!connected) return;
+    if (stakingTokenState.approved || stakingPermitSig) return;
 
     (async () => {
-      if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
-        const sig = await generateSignature(
-          signer,
-          router.address,
-          stakingTokenState.address,
-        );
+      const sig = await generateSignature(
+        signer,
+        router.address,
+        stakingTokenState.address,
+      );
 
-        // record signature
-        setStakingTokenState({
-          ...stakingTokenState,
-          permitSignature: sig,
-        });
-        // load unstaking data
-        setStakingState(stakingState);
-      }
+      // record signature
+      setStakingPermitSig(sig);
+      // load unstaking data
+      setStakingState(stakingState);
     })().catch(console.error);
   }, [
     connected,
     router,
     signer,
     stakingTokenState,
-    stakingTokenState?.approved,
-    stakingTokenState?.permitSignature,
-    setStakingTokenState,
+    stakingPermitSig,
+    setStakingPermitSig,
     setStakingState,
     stakingState,
+  ]);
+
+  // update stakingState
+  useEffect(() => {
+    if (stakingState) sleep(1).then(() => setStakingState(stakingState));
+  }, [
+    stakingState,
+    setStakingState,
+    stakingTokenState,
+    unstakingData,
+    stakingPermitSig,
   ]);
 
   const totalLPAmount =
@@ -174,40 +183,38 @@ export default function RemovePool() {
           .div(100);
 
   const unstakeAndremoveLiquidityWithPermit = async () => {
-    if (!connected) return;
-
-    let signature: Signature | undefined = stakingTokenState.permitSignature;
-
-    if (!signature) {
-      console.log('no permit sig provided');
-
-      await generateSignature(
-        signer,
-        router.address,
-        stakingTokenState.address,
-      ).then((sig) => {
-        // record signature
-        setStakingTokenState({
-          ...stakingTokenState,
-          permitSignature: sig,
-        });
-        // load unstaking data
-        setStakingState(stakingState);
-        signature = sig;
-      });
-
+    if (!connected) {
+      console.log('unstakeAndremoveLiquidityWithPermit: not connected yet ');
       return;
     }
 
-    await router.unstakeAndremoveLiquidityWithPermit(
-      fromTokenState.isETH ? toTokenState.address : fromTokenState.address,
-      stakingTokenState.balance.mul(removeAmountPercent).div(100),
-      getDeadline(signer),
-      signature.v,
-      signature.r,
-      signature.s,
-    );
+    if (stakingTokenState.approved) {
+      await router.unstakeAndRemoveLiquidity(
+        fromTokenState.isETH ? toTokenState.address : fromTokenState.address,
+        stakingTokenState.balance.mul(removeAmountPercent).div(100),
+        getDeadline(signer),
+      );
+    } else {
+      let sig: typeof stakingPermitSig = stakingPermitSig;
+      if (!sig) {
+        console.log('unstakeAndremoveLiquidityWithPermit: sig not provided');
+        sig = await generateSignature(
+          signer,
+          router.address,
+          stakingTokenState.address,
+        );
+        setStakingPermitSig(sig);
+      }
 
+      await router.unstakeAndRemoveLiquidityWithPermit(
+        fromTokenState.isETH ? toTokenState.address : fromTokenState.address,
+        stakingTokenState.balance.mul(removeAmountPercent).div(100),
+        getDeadline(signer),
+        sig.v,
+        sig.r,
+        sig.s,
+      );
+    }
     setToToken(toToken); // update
 
     console.log('LIQUIDITY REMOVED');
@@ -740,11 +747,9 @@ export default function RemovePool() {
               height="45px"
               fontSize="18px"
               text={
-                stakingTokenState?.approved === undefined
-                  ? 'Approve'
-                  : stakingTokenState?.approved
-                  ? 'Remove Liquidity'
-                  : 'Approve'
+                !stakingTokenState?.approved || !stakingPermitSig
+                  ? 'Sign signature first'
+                  : 'Remove Liquidity'
               }
               borderRadius="24px"
               onClick={unstakeAndremoveLiquidityWithPermit}

@@ -23,6 +23,7 @@ import {
   signerAddressAtom,
   signerAtom,
   sortedAtom,
+  stakingPermitSigAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
@@ -44,6 +45,7 @@ function Pool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
+  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState] = useAtom(stakingStateAtom);
@@ -77,17 +79,22 @@ function Pool() {
   useEffect(() => {
     if (!connected) return;
 
-    if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+    if (!stakingTokenState.approved && !stakingPermitSig) {
       generateSignature(signer, router.address, stakingTokenState.address).then(
         (sig) => {
-          setStakingTokenState({
-            ...stakingTokenState,
-            permitSignature: sig,
-          });
+          setStakingPermitSig(sig);
         },
       );
     }
-  }, [connected, router, signer, stakingTokenState, setStakingTokenState]);
+  }, [
+    connected,
+    router,
+    signer,
+    stakingTokenState,
+    setStakingTokenState,
+    stakingPermitSig,
+    setStakingPermitSig,
+  ]);
 
   const totalLPAmount =
     !connected || stakingState.totalSupply.eq(0)

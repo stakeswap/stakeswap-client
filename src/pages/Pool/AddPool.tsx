@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { debounce, FormControlLabel, Switch, Typography } from '@mui/material';
-import { BigNumber, ContractTransaction, ethers } from 'ethers';
+import { BigNumber, ContractTransaction, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useAtom } from 'jotai';
 import { throttle } from 'lodash';
@@ -15,7 +15,9 @@ import { primary, secondary } from '../../components/util/colors';
 import {
   fromTokenAtom,
   fromTokenStateAtom,
+  generateSignature,
   getDeadline,
+  lpPermitSigAtom,
   lpTokenStateAtom,
   pairAtom,
   routerAtom,
@@ -43,6 +45,7 @@ export default function AddPool() {
   const [toTokenState] = useAtom(toTokenStateAtom);
   const [lpTokenState] = useAtom(lpTokenStateAtom);
   const [stakingTokenState] = useAtom(stakingTokenStateAtom);
+  const [lpPermitSig, setLpPermitSig] = useAtom(lpPermitSigAtom);
 
   const [WETH] = useAtom(WETHAtom);
   const [router] = useAtom(routerAtom);
@@ -161,14 +164,6 @@ export default function AddPool() {
       );
     }
 
-    if (!lpTokenState!.approved) {
-      console.log('approve LP token: %s', lpTokenState?.symbol);
-      await ERC20__factory.connect(lpTokenState!.address, signer!).approve(
-        router!.address,
-        ethers.constants.MaxUint256,
-      );
-    }
-
     const fromTokenAmount = parseUnits(
       fromTokenAmountInput,
       fromTokenState!.decimals,
@@ -190,13 +185,25 @@ export default function AddPool() {
         : fromTokenAmount;
 
       if (withStaking) {
-        tx = await router!.addLiquidityAndStakeETH(
+        let sig: null | Signature = lpPermitSig;
+        if (!sig) {
+          sig = await generateSignature(
+            signer,
+            router!.address,
+            lpTokenState.address,
+          );
+          setLpPermitSig(sig);
+        }
+
+        tx = await router!.addLiquidityAndStakeETHWithPermit(
           tokenAddress,
           tokenAmount,
           tooSmallK ? 0 : tokenAmount.mul(97).div(100),
           tooSmallK ? 0 : ethAmount.mul(97).div(100),
-          signerAddress!,
           await getDeadline(signer!),
+          sig.v,
+          sig.r,
+          sig.s,
           { value: ethAmount },
         );
       } else {

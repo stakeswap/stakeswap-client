@@ -40,8 +40,23 @@ export type TokenState = Token & {
   permitable: boolean;
   isLP?: boolean;
   isSTK?: boolean;
-  permitSignature?: Signature;
 };
+
+// PERMIT SIGNATURE FOR LP AND STK
+export const lpPermitSigAtom = atom<null | Signature, [Signature], void>(
+  null,
+  (get, set, newSig) => {
+    const prev = get(lpPermitSigAtom);
+    if (!lpPermitSigAtom) set(lpPermitSigAtom, newSig);
+  },
+);
+export const stakingPermitSigAtom = atom<null | Signature, [Signature], void>(
+  null,
+  (get, set, newSig) => {
+    const prev = get(stakingPermitSigAtom);
+    if (!stakingPermitSigAtom) set(stakingPermitSigAtom, newSig);
+  },
+);
 
 // PAIR STATE
 export const pairStateAtom = atom<null | {
@@ -67,6 +82,7 @@ export const stakingStateAtom = atom<
   void
 >(null, async (get, set, stakingState) => {
   set(stakingStateAtom, stakingState);
+  console.log('updating stakingStateAtom...');
 
   // load unstaking data
   const signer = get(signerAtom);
@@ -75,6 +91,7 @@ export const stakingStateAtom = atom<
   const toTokenState = get(toTokenStateAtom);
   const stakingTokenState = get(stakingTokenStateAtom);
   const WETH = get(WETHAtom);
+  const stakingPermitSig = get(stakingPermitSigAtom);
 
   if (
     !signer ||
@@ -87,7 +104,7 @@ export const stakingStateAtom = atom<
     console.log('not specified...');
     return;
   }
-  if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+  if (!stakingTokenState.approved && !stakingPermitSig) {
     console.log('no approval data...');
     return;
   }
@@ -106,7 +123,7 @@ export const stakingStateAtom = atom<
           console.error('Failed to call unstake', err);
           return undefined;
         })
-    : stakingTokenState.permitSignature
+    : stakingPermitSig
     ? await router.callStatic
         .unstakeWithPermit(
           fromTokenState.isETH ? WETH.address : fromTokenState.address,
@@ -114,9 +131,9 @@ export const stakingStateAtom = atom<
           stakingTokenState.balance,
           getDeadline(signer),
           true,
-          stakingTokenState.permitSignature.v,
-          stakingTokenState.permitSignature.r,
-          stakingTokenState.permitSignature.s,
+          stakingPermitSig.v,
+          stakingPermitSig.r,
+          stakingPermitSig.s,
         )
         .catch((err) => {
           console.error('Failed to call unstakeWithPermit', err);
@@ -198,9 +215,13 @@ export const toTokenAtom: WritableAtom<Token, [Token], void> = atom<
   })),
 );
 
-function sleep(sec: number): Promise<void> {
+export function sleep(sec: number): Promise<void> {
   // eslint-disable-next-line no-promise-executor-return
   return new Promise((resolve) => setTimeout(resolve, sec * 1000));
+}
+export async function sleepWhile(cond: () => boolean, sec: number) {
+  // eslint-disable-next-line no-await-in-loop
+  while (cond()) await sleep(sec);
 }
 
 function createTokenWrite(
@@ -470,11 +491,12 @@ async function runTestScenario(get: Getter, set: Setter) {
     {
       // assume user stake all LP token
       const lpTokenState = get(lpTokenStateAtom)!;
+      let lpPermitSig = get(lpPermitSigAtom)!;
 
       // 2.1 generate signature
-      if (!lpTokenState.approved && !lpTokenState.permitSignature) {
+      if (!lpTokenState.approved && !lpPermitSig) {
         console.log('2.1 generate signature');
-        lpTokenState.permitSignature = await generateSignature(
+        lpPermitSig = await generateSignature(
           signer,
           router.address,
           lpTokenState.address,
@@ -493,16 +515,16 @@ async function runTestScenario(get: Getter, set: Setter) {
           ? WETH.address
           : toToken.address;
 
-      const tx = lpTokenState.permitSignature
+      const tx = lpPermitSig
         ? await router.stakeWithPermit(
             tokenA,
             tokenB,
             lpTokenState.balance,
             await getDeadline(signer),
             true,
-            lpTokenState.permitSignature.v,
-            lpTokenState.permitSignature.r,
-            lpTokenState.permitSignature.s,
+            lpPermitSig.v,
+            lpPermitSig.r,
+            lpPermitSig.s,
           )
         : await router.stake(
             tokenA,
@@ -514,8 +536,8 @@ async function runTestScenario(get: Getter, set: Setter) {
       await tx.wait(2);
 
       lpTokenState.approved = true;
-      delete lpTokenState.permitSignature;
-      set(lpTokenStateAtom, lpTokenState);
+      // set(lpPermitSigAtom, null);
+      // set(lpTokenStateAtom, lpTokenState);
     }
   }
 
