@@ -41,6 +41,8 @@ import {
   getPermitNonce,
   splitSignature,
   rewardAPRAtom,
+  priceETH,
+  priceUSDC,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
@@ -96,6 +98,13 @@ export default function AddPool() {
 
   const [fromTokenAmountInput, _setFromTokenAmountInput] = useState('0');
   const [toTokenAmountInput, _setToTokenAmountInput] = useState('0');
+
+  const fromTokenAmountInputUSD =
+    parseFloat(fromTokenAmountInput) *
+    (fromTokenState?.isETH ? priceETH : priceUSDC);
+  const toTokenAmountInputUSD =
+    parseFloat(toTokenAmountInput) *
+    (fromTokenState?.isETH ? priceUSDC : priceETH);
 
   const [withStaking, setWithStaking] = useState(true);
   const handleWithStaking = () => {
@@ -361,7 +370,7 @@ export default function AddPool() {
               <Typography
                 style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
               >
-                $1,662.24
+                ${fromTokenAmountInputUSD}
               </Typography>
             </div>
             <div
@@ -431,7 +440,7 @@ export default function AddPool() {
               <Typography
                 style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
               >
-                $1,662.24
+                ${toTokenAmountInputUSD}
               </Typography>
             </div>
             <div
@@ -487,7 +496,7 @@ export default function AddPool() {
             >
               <Typography style={{ fontSize: '12px' }}>Total APR:</Typography>
               <Typography style={{ color: primary, fontSize: '12px' }}>
-                {connected ? round(rewardAPR * 1.2, 2) : 6.63} %
+                {connected ? round(rewardAPR * 1.6, 2) : 6.63} %
               </Typography>
             </div>
             <div
@@ -499,7 +508,7 @@ export default function AddPool() {
             >
               <Typography style={{ fontSize: '12px' }}>Fee APR:</Typography>
               <Typography style={{ color: primary, fontSize: '12px' }}>
-                {connected ? round(rewardAPR * 1.5, 2) : 8.3} %
+                {connected ? round(rewardAPR * 1.4, 2) : 8.3} %
               </Typography>
             </div>
             {withStaking ? (

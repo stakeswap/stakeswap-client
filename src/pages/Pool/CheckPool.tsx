@@ -27,6 +27,8 @@ import {
   lpTokenStateAtom,
   pairAtom,
   pairStateAtom,
+  priceETH,
+  priceUSDC,
   routerAtom,
   signerAddressAtom,
   signerAtom,
@@ -139,14 +141,12 @@ export default function CheckPool() {
 
   // asume price
   // TODO: fetch token price from coingecko
-  const priceETH = 1560;
-  const priceToken = 0.98;
 
   const pooledETHUSD =
     parseFloat(FixedNumber.fromValue(pooledETH, 18).toString()) * priceETH;
   const pooledTokenUSD =
     parseFloat(FixedNumber.fromValue(pooledToken, tokenDecimals).toString()) *
-    priceToken;
+    priceUSDC;
   const totalPooledUSD = pooledETHUSD + pooledTokenUSD;
 
   const rewardETH = unstakingData?.rewardToStaker ?? BigNumber.from(0);

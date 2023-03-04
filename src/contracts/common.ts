@@ -114,3 +114,6 @@ export const providerAtom = atom<
 
   set(rewardAPRAtom, round(parseFloat(formatUnits(apr, 18)), 2));
 });
+
+export const priceETH = 1560;
+export const priceUSDC = 0.98;
