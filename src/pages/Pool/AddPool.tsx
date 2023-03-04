@@ -52,6 +52,8 @@ export default function AddPool() {
   const [fromTokenAmountInput, _setFromTokenAmountInput] = useState('0');
   const [toTokenAmountInput, _setToTokenAmountInput] = useState('0');
 
+  const [withStaking, setWithStaking] = useState(true);
+
   const checkAndSetInput = debounce(
     async (value: string, isFromTokenSet: boolean) => {
       let fromTokenAmount = isFromTokenSet ? value : fromTokenAmountInput;
@@ -121,13 +123,25 @@ export default function AddPool() {
 
     // check allowance
     if (!fromTokenState!.isETH && !fromTokenState!.approved) {
+      console.log('approve From token: %s', fromTokenState?.symbol);
+
       await ERC20__factory.connect(fromTokenState!.address, signer!).approve(
         router!.address,
         ethers.constants.MaxUint256,
       );
     }
+
     if (!toTokenState!.isETH && !toTokenState!.approved) {
+      console.log('approve To token: %s', toTokenState?.symbol);
       await ERC20__factory.connect(toTokenState!.address, signer!).approve(
+        router!.address,
+        ethers.constants.MaxUint256,
+      );
+    }
+
+    if (!lpTokenState!.approved) {
+      console.log('approve LP token: %s', lpTokenState?.symbol);
+      await ERC20__factory.connect(lpTokenState!.address, signer!).approve(
         router!.address,
         ethers.constants.MaxUint256,
       );
@@ -151,15 +165,27 @@ export default function AddPool() {
         ? toTokenAmount
         : fromTokenAmount;
 
-      await router!.addLiquidityETH(
-        tokenAddress,
-        tokenAmount,
-        tokenAmount.mul(97).div(100),
-        ethAmount.mul(97).div(100),
-        signerAddress!,
-        await getDeadline(signer!),
-        { value: ethAmount },
-      );
+      if (withStaking) {
+        await router!.addLiquidityAndStakeETH(
+          tokenAddress,
+          tokenAmount,
+          tokenAmount.mul(97).div(100),
+          ethAmount.mul(97).div(100),
+          signerAddress!,
+          await getDeadline(signer!),
+          { value: ethAmount },
+        );
+      } else {
+        await router!.addLiquidityETH(
+          tokenAddress,
+          tokenAmount,
+          tokenAmount.mul(97).div(100),
+          ethAmount.mul(97).div(100),
+          signerAddress!,
+          await getDeadline(signer!),
+          { value: ethAmount },
+        );
+      }
     } else {
       await router!.addLiquidity(
         fromTokenState!.isETH ? WETH!.address : fromTokenState!.address,
@@ -374,6 +400,8 @@ export default function AddPool() {
         </div>
         <FormControlLabel
           control={<Switch defaultChecked />}
+          value={withStaking}
+          onChange={() => setWithStaking(!withStaking)}
           label="With Staking"
         />
         <PrimaryContainedButton
