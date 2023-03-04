@@ -5,18 +5,16 @@ import { useHistory } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { useAtom } from 'jotai';
 import { ContainedButton } from '../util/button';
-import Logo from '../../assets/Logo.png';
 import { providerAtom } from '../../contracts';
+import Logo from '../../assets/logo-with-typo.png';
 
 const useStyles: any = makeStyles({
   root: {
     height: '64px',
     width: '100%',
-    backgroundColor: 'black',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    boxShadow: '0px 1px 5px black',
   },
   logo: {
     width: 'auto',
@@ -27,12 +25,11 @@ const useStyles: any = makeStyles({
   link: {
     marginRight: '16px',
     fontSize: '14px',
-    fontWeight: 'bold!important',
+    fontWeight: 'normal!important',
     cursor: 'pointer',
-    color: 'white',
   },
   linkGroup: {
-    width: '370px',
+    width: '126px',
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -179,21 +176,27 @@ function Navigation() {
         <Typography
           className={classes.link}
           onClick={() => {
-            history.push('/');
+            history.push('/swap');
           }}
         >
-          Course
+          Swap
         </Typography>
-        {!provider && (
-          <ContainedButton
-            width="134px"
-            height="36px"
-            text="Connect Wallet"
-            fontSize="15px"
-            borderRadius="10px"
-            onClick={handleConnectWallet}
-          />
-        )}
+        <Typography
+          className={classes.link}
+          onClick={() => {
+            history.push('/pool');
+          }}
+        >
+          Pool
+        </Typography>
+        <ContainedButton
+          width="134px"
+          height="36px"
+          text="Connect Wallet"
+          fontSize="15px"
+          borderRadius="10px"
+          onClick=""
+        />
       </div>
     </div>
   );

@@ -2,6 +2,9 @@ import React from 'react';
 
 import { Button, Typography } from '@mui/material';
 
+// utils
+import { primary } from './colors';
+
 interface ButtonProps {
   width: string;
   height: string;
@@ -20,7 +23,7 @@ export function ContainedButton(props: ButtonProps) {
         width,
         height,
         padding: '8px 16px',
-        backgroundColor: '#408CF7',
+        backgroundColor: primary,
         color: 'white',
         borderRadius,
         border: 'none',
@@ -45,8 +48,8 @@ export function OutlinedButton(props: ButtonProps) {
       style={{
         width,
         height,
-        color: '#408CF7',
-        border: '2px solid #408CF7',
+        color: primary,
+        border: `2px solid ${primary}`,
         borderRadius,
         textAlign: 'center',
         lineHeight: '50px',
