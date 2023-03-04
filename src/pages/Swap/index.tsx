@@ -31,6 +31,7 @@ import {
   WETHAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
+import SwapBackground from '../../assets/backgrounds/swap.png';
 
 function Swap() {
   const [open, setOpen] = useState(false);
@@ -164,147 +165,156 @@ function Swap() {
   return (
     <div
       style={{
-        marginTop: '160px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: '1440px',
+        height: '1024px',
+        backgroundImage: `url(${SwapBackground})`,
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div
         style={{
-          width: '415px',
-          height: '388px',
-          padding: '16px',
-          borderRadius: '20px',
-          boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
+          marginTop: '160px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
-        <Typography
-          style={{
-            margin: '0 0 18px 10px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-          }}
-        >
-          Swap
-        </Typography>
         <div
           style={{
-            width: '100%',
-            height: '96px',
-            padding: '24px 16px 12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            backgroundColor: secondary,
-            borderRadius: '16px',
-            boxSizing: 'border-box',
+            width: '415px',
+            height: '388px',
+            padding: '16px',
+            borderRadius: '20px',
+            boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
           }}
         >
-          <input
+          <Typography
             style={{
-              width: '50%',
-              backgroundColor: secondary,
-              fontSize: '36PX',
-              border: 'none',
-              outline: 'none',
-            }}
-            disabled={!connected}
-            inputMode="numeric"
-            pattern="[-+]?[0-9]*[.,]?[0-9]+"
-            value={fromTokenAmountInput}
-            onChange={(e) => setFromTokenAmountInput(e.target.value)}
-          />
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'end',
+              margin: '0 0 18px 10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
             }}
           >
-            <TokenSearchButton
-              tokenAtom={fromTokenAtom}
-              backgroundColor="white"
-              onClick={handleOpen}
-            />
-            <TokenSearchModal open={open} handleClose={handleClose} />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
-            >
-              Balance:{' '}
-              {fromTokenState
-                ? Number(
-                    formatUnits(
-                      fromTokenState.balance,
-                      fromTokenState.decimals,
-                    ),
-                  ).toFixed(2)
-                : '0'}
-            </Typography>
-          </div>
-        </div>
-        <div
-          style={{
-            width: '100%',
-            height: '96px',
-            marginTop: '4px',
-            padding: '24px 16px 12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            backgroundColor: secondary,
-            borderRadius: '16px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <input
-            style={{
-              width: '50%',
-              backgroundColor: secondary,
-              fontSize: '36PX',
-              border: 'none',
-              outline: 'none',
-            }}
-            disabled
-            inputMode="numeric"
-            pattern="[-+]?[0-9]*[.,]?[0-9]+"
-            value={toTokenAmountInput}
-            onChange={(e) => setToTokenAmountInput(e.target.value)}
-          />
+            Swap
+          </Typography>
           <div
             style={{
-              width: '50%',
+              width: '100%',
+              height: '96px',
+              padding: '24px 16px 12px 16px',
               display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'end',
+              justifyContent: 'space-between',
+              backgroundColor: secondary,
+              borderRadius: '16px',
+              boxSizing: 'border-box',
             }}
           >
-            <TokenSearchButton
-              tokenAtom={toTokenAtom}
-              backgroundColor="white"
-              onClick={handleOpen}
+            <input
+              style={{
+                width: '50%',
+                backgroundColor: secondary,
+                fontSize: '36PX',
+                border: 'none',
+                outline: 'none',
+              }}
+              disabled={!connected}
+              inputMode="numeric"
+              pattern="[-+]?[0-9]*[.,]?[0-9]+"
+              value={fromTokenAmountInput}
+              onChange={(e) => setFromTokenAmountInput(e.target.value)}
             />
-            <TokenSearchModal open={open} handleClose={handleClose} />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'end',
+              }}
             >
-              Balance:{' '}
-              {toTokenState
-                ? Number(
-                    formatUnits(toTokenState.balance, toTokenState.decimals),
-                  ).toFixed(2)
-                : '0'}
-            </Typography>
+              <TokenSearchButton
+                tokenAtom={fromTokenAtom}
+                backgroundColor="white"
+                onClick={handleOpen}
+              />
+              <TokenSearchModal open={open} handleClose={handleClose} />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                Balance:{' '}
+                {fromTokenState
+                  ? Number(
+                      formatUnits(
+                        fromTokenState.balance,
+                        fromTokenState.decimals,
+                      ),
+                    ).toFixed(2)
+                  : '0'}
+              </Typography>
+            </div>
           </div>
-        </div>
-        <div style={{ marginTop: '65px' }}>
-          <PrimaryContainedButton
-            width="100%"
-            height="60px"
-            fontSize="20px"
-            text={fromTokenAmountBN.eq(0) ? 'Enter an amount' : 'Swap'}
-            borderRadius="16px"
-            onClick={swap}
-          />
+          <div
+            style={{
+              width: '100%',
+              height: '96px',
+              marginTop: '4px',
+              padding: '24px 16px 12px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              backgroundColor: secondary,
+              borderRadius: '16px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <input
+              style={{
+                width: '50%',
+                backgroundColor: secondary,
+                fontSize: '36PX',
+                border: 'none',
+                outline: 'none',
+              }}
+              disabled
+              inputMode="numeric"
+              pattern="[-+]?[0-9]*[.,]?[0-9]+"
+              value={toTokenAmountInput}
+              onChange={(e) => setToTokenAmountInput(e.target.value)}
+            />
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'end',
+              }}
+            >
+              <TokenSearchButton
+                tokenAtom={toTokenAtom}
+                backgroundColor="white"
+                onClick={handleOpen}
+              />
+              <TokenSearchModal open={open} handleClose={handleClose} />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                Balance:{' '}
+                {toTokenState
+                  ? Number(
+                      formatUnits(toTokenState.balance, toTokenState.decimals),
+                    ).toFixed(2)
+                  : '0'}
+              </Typography>
+            </div>
+          </div>
+          <div style={{ marginTop: '65px' }}>
+            <PrimaryContainedButton
+              width="100%"
+              height="60px"
+              fontSize="20px"
+              text={fromTokenAmountBN.eq(0) ? 'Enter an amount' : 'Swap'}
+              borderRadius="16px"
+              onClick={swap}
+            />
+          </div>
         </div>
       </div>
     </div>

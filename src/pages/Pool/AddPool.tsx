@@ -40,6 +40,7 @@ import {
   WETHAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
+import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
 
 const PrimarySwitch = styled(Switch)(({ theme }) => ({
   '& .MuiSwitch-switchBase.Mui-checked': {
@@ -292,210 +293,205 @@ export default function AddPool() {
 
   return (
     <div
-      style={{ marginTop: '90px', display: 'flex', justifyContent: 'center' }}
+      style={{
+        width: '1440px',
+        height: '1024px',
+        backgroundImage: `url(${CheckAddRemoveBackground})`,
+        backgroundRepeat: 'no-repeat',
+      }}
     >
       <div
-        style={{
-          width: '400px',
-          padding: '20px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: '20px',
-          boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
-          boxSizing: 'border-box',
-        }}
+        style={{ marginTop: '90px', display: 'flex', justifyContent: 'center' }}
       >
-        <Typography style={{ fontSize: '24px', textAlign: 'center' }}>
-          Add Liquidity
-        </Typography>
-        <Typography
-          style={{
-            margin: '45px 0 30px 0',
-            fontSize: '16px',
-            fontWeight: 'bold',
-          }}
-        >
-          Deposit Amounts
-        </Typography>
         <div
           style={{
-            width: '100%',
-            height: '96px',
-            padding: '24px 16px 12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            backgroundColor: secondary,
-            borderRadius: '16px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'start',
-            }}
-          >
-            <input
-              style={{
-                width: '100%',
-                backgroundColor: secondary,
-                fontSize: '36PX',
-                border: 'none',
-                outline: 'none',
-              }}
-              disabled={!connected}
-              inputMode="numeric"
-              pattern="[-+]?[0-9]*[.,]?[0-9]+"
-              value={fromTokenAmountInput}
-              onChange={(e) => setFromTokenAmountInput(e.target.value)}
-            />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
-            >
-              $1,662.24
-            </Typography>
-          </div>
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'end',
-            }}
-          >
-            <TokenSearchButton
-              tokenAtom={fromTokenAtom}
-              backgroundColor="white"
-              onClick={handleOpen}
-            />
-            <TokenSearchModal open={open} handleClose={handleClose} />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
-            >
-              Balance:{' '}
-              {fromTokenState
-                ? Number(
-                    formatUnits(
-                      fromTokenState.balance,
-                      fromTokenState.decimals,
-                    ),
-                  ).toFixed(2)
-                : '0'}
-            </Typography>
-          </div>
-        </div>
-        <div
-          style={{
-            width: '100%',
-            height: '96px',
-            marginTop: '4px',
-            padding: '24px 16px 12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            backgroundColor: secondary,
-            borderRadius: '16px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'start',
-            }}
-          >
-            <input
-              style={{
-                width: '100%',
-                backgroundColor: secondary,
-                fontSize: '36PX',
-                border: 'none',
-                outline: 'none',
-              }}
-              disabled={!connected}
-              inputMode="numeric"
-              pattern="[-+]?[0-9]*[.,]?[0-9]+"
-              value={toTokenAmountInput}
-              onChange={(e) => setToTokenAmountInput(e.target.value)}
-            />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
-            >
-              $1,662.24
-            </Typography>
-          </div>
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'end',
-            }}
-          >
-            <TokenSearchButton
-              tokenAtom={toTokenAtom}
-              backgroundColor="white"
-              onClick={handleOpen}
-            />
-            <TokenSearchModal open={open} handleClose={handleClose} />
-            <Typography
-              style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
-            >
-              Balance:{' '}
-              {toTokenState
-                ? formatUnits(toTokenState.balance, toTokenState.decimals)
-                : '0'}
-            </Typography>
-          </div>
-        </div>
-        <div
-          style={{
-            width: '100%',
-            marginTop: '20px',
-            padding: '16px',
+            width: '400px',
+            padding: '20px 40px',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: secondary,
-            borderRadius: '16px',
+            borderRadius: '20px',
+            boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
             boxSizing: 'border-box',
           }}
         >
+          <Typography style={{ fontSize: '24px', textAlign: 'center' }}>
+            Add Liquidity
+          </Typography>
           <Typography
             style={{
+              margin: '45px 0 30px 0',
               fontSize: '16px',
               fontWeight: 'bold',
             }}
           >
-            APR
+            Deposit Amounts
           </Typography>
           <div
             style={{
-              marginTop: '16px',
+              width: '100%',
+              height: '96px',
+              padding: '24px 16px 12px 16px',
               display: 'flex',
               justifyContent: 'space-between',
+              backgroundColor: secondary,
+              borderRadius: '16px',
+              boxSizing: 'border-box',
             }}
           >
-            <Typography style={{ fontSize: '12px' }}>Total APR:</Typography>
-            <Typography style={{ color: primary, fontSize: '12px' }}>
-              {rewardAPR > 0 ? rewardAPR * 4 : 6.63} %
-            </Typography>
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'start',
+              }}
+            >
+              <input
+                style={{
+                  width: '100%',
+                  backgroundColor: secondary,
+                  fontSize: '36PX',
+                  border: 'none',
+                  outline: 'none',
+                }}
+                disabled={!connected}
+                inputMode="numeric"
+                pattern="[-+]?[0-9]*[.,]?[0-9]+"
+                value={fromTokenAmountInput}
+                onChange={(e) => setFromTokenAmountInput(e.target.value)}
+              />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                $1,662.24
+              </Typography>
+            </div>
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'end',
+              }}
+            >
+              <TokenSearchButton
+                tokenAtom={fromTokenAtom}
+                backgroundColor="white"
+                onClick={handleOpen}
+              />
+              <TokenSearchModal open={open} handleClose={handleClose} />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                Balance:{' '}
+                {fromTokenState
+                  ? Number(
+                      formatUnits(
+                        fromTokenState.balance,
+                        fromTokenState.decimals,
+                      ),
+                    ).toFixed(2)
+                  : '0'}
+              </Typography>
+            </div>
           </div>
           <div
             style={{
-              marginTop: '12px',
+              width: '100%',
+              height: '96px',
+              marginTop: '4px',
+              padding: '24px 16px 12px 16px',
               display: 'flex',
               justifyContent: 'space-between',
+              backgroundColor: secondary,
+              borderRadius: '16px',
+              boxSizing: 'border-box',
             }}
           >
-            <Typography style={{ fontSize: '12px' }}>Fee APR:</Typography>
-            <Typography style={{ color: primary, fontSize: '12px' }}>
-              {rewardAPR > 0 ? rewardAPR * 3 : 6.63} %
-            </Typography>
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'start',
+              }}
+            >
+              <input
+                style={{
+                  width: '100%',
+                  backgroundColor: secondary,
+                  fontSize: '36PX',
+                  border: 'none',
+                  outline: 'none',
+                }}
+                disabled={!connected}
+                inputMode="numeric"
+                pattern="[-+]?[0-9]*[.,]?[0-9]+"
+                value={toTokenAmountInput}
+                onChange={(e) => setToTokenAmountInput(e.target.value)}
+              />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                $1,662.24
+              </Typography>
+            </div>
+            <div
+              style={{
+                width: '50%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'end',
+              }}
+            >
+              <TokenSearchButton
+                tokenAtom={toTokenAtom}
+                backgroundColor="white"
+                onClick={handleOpen}
+              />
+              <TokenSearchModal open={open} handleClose={handleClose} />
+              <Typography
+                style={{ marginTop: '8px', fontSize: '12px', color: '#A5A5A5' }}
+              >
+                Balance:{' '}
+                {toTokenState
+                  ? formatUnits(toTokenState.balance, toTokenState.decimals)
+                  : '0'}
+              </Typography>
+            </div>
           </div>
-          {withStaking ? (
+          <div
+            style={{
+              width: '100%',
+              marginTop: '20px',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: secondary,
+              borderRadius: '16px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <Typography
+              style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+              }}
+            >
+              APR
+            </Typography>
+            <div
+              style={{
+                marginTop: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography style={{ fontSize: '12px' }}>Total APR:</Typography>
+              <Typography style={{ color: primary, fontSize: '12px' }}>
+                {rewardAPR > 0 ? rewardAPR * 4 : 6.63} %
+              </Typography>
+            </div>
             <div
               style={{
                 marginTop: '12px',
@@ -503,30 +499,46 @@ export default function AddPool() {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography style={{ fontSize: '12px' }}>Reward APR:</Typography>
+              <Typography style={{ fontSize: '12px' }}>Fee APR:</Typography>
               <Typography style={{ color: primary, fontSize: '12px' }}>
-                {rewardAPR} %
+                {rewardAPR > 0 ? rewardAPR * 3 : 6.63} %
               </Typography>
             </div>
-          ) : (
-            ''
-          )}
+            {withStaking ? (
+              <div
+                style={{
+                  marginTop: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography style={{ fontSize: '12px' }}>
+                  Reward APR:
+                </Typography>
+                <Typography style={{ color: primary, fontSize: '12px' }}>
+                  {rewardAPR} %
+                </Typography>
+              </div>
+            ) : (
+              ''
+            )}
+          </div>
+          <FormControlLabel
+            style={{ margin: '20px 0', color: '#575757' }}
+            control={<PrimarySwitch defaultChecked />}
+            value={withStaking}
+            onChange={handleWithStaking}
+            label="With Staking"
+          />
+          <PrimaryContainedButton
+            width="100%"
+            height="45px"
+            fontSize="18px"
+            text="Add"
+            borderRadius="20px"
+            onClick={addLiquidity}
+          />
         </div>
-        <FormControlLabel
-          style={{ margin: '20px 0', color: '#575757' }}
-          control={<PrimarySwitch defaultChecked />}
-          value={withStaking}
-          onChange={handleWithStaking}
-          label="With Staking"
-        />
-        <PrimaryContainedButton
-          width="100%"
-          height="45px"
-          fontSize="18px"
-          text="Add"
-          borderRadius="20px"
-          onClick={addLiquidity}
-        />
       </div>
     </div>
   );

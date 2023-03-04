@@ -31,6 +31,7 @@ import {
   WETHAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
+import PoolBackground from '../../assets/backgrounds/pool.png';
 
 function Pool() {
   const history = useHistory();
@@ -129,45 +130,52 @@ function Pool() {
   return (
     <div
       style={{
-        marginTop: '160px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: '1440px',
+        height: '1024px',
+        backgroundImage: `url(${PoolBackground})`,
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div
         style={{
-          width: '620px',
-          marginBottom: '30px',
+          marginTop: '160px',
           display: 'flex',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
+          justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <Typography style={{ fontSize: '28px' }}>Pools</Typography>
-        <PrimaryContainedButton
-          width="150px"
-          height="40px"
-          fontSize="18px"
-          text="+ New Liquidity"
-          borderRadius="12px"
-          onClick={() => {
-            history.push('/pools/add');
+        <div
+          style={{
+            width: '620px',
+            marginBottom: '30px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
-        />
-      </div>
-      <div
-        style={{
-          width: '620px',
-          height: '420px',
-          padding: '20px 40px',
-          borderRadius: '20px',
-          boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* <div
+        >
+          <Typography style={{ fontSize: '28px' }}>Pools</Typography>
+          <PrimaryContainedButton
+            width="150px"
+            height="40px"
+            fontSize="18px"
+            text="+ New Liquidity"
+            borderRadius="12px"
+            onClick={() => {
+              history.push('/pools/add');
+            }}
+          />
+        </div>
+        <div
+          style={{
+            width: '620px',
+            padding: '20px 40px',
+            borderRadius: '20px',
+            boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* <div
           style={{
             width: '100%',
             height: '100%',
@@ -199,97 +207,42 @@ function Pool() {
             onClick=""
           />
         </div> */}
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Typography
-            style={{
-              width: '100%',
-              marginBottom: '30px',
-              fontSize: '16px',
-            }}
-          >
-            Your Position (1)
-          </Typography>
           <div
             style={{
-              width: '530px',
-              padding: '18px 40px',
-              backgroundColor: secondary,
-              borderRadius: '16px',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
-            onClick={() => history.push('/pools/1')}
           >
-            <div
+            <Typography
               style={{
-                marginBottom: '28px',
-                display: 'flex',
-                alignItems: 'center',
+                width: '100%',
+                marginBottom: '30px',
+                fontSize: '16px',
               }}
             >
-              <img
+              Your Position (1)
+            </Typography>
+            <div
+              style={{
+                width: '530px',
+                padding: '18px 40px',
+                backgroundColor: secondary,
+                borderRadius: '16px',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+              onClick={() => history.push('/pools/1')}
+            >
+              <div
                 style={{
-                  width: '20px',
-                  height: '20px',
-                  marginRight: '-8px',
-                }}
-                src={fromTokenState?.logoURI ?? fromToken.logoURI}
-                alt="token-logo"
-              />
-              <img
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  marginRight: '8px',
-                }}
-                src={toTokenState?.logoURI ?? toToken.logoURI}
-                alt="token-logo"
-              />
-              <Typography
-                style={{
-                  fontSize: '20px',
-                  fontWeight: 'bold',
+                  marginBottom: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
-                {`${fromToken.symbol} / ${toToken.symbol}`}
-              </Typography>
-            </div>
-            <div
-              style={{
-                marginBottom: '14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography style={{ fontSize: '16px' }}>
-                Your total LP tokens:
-              </Typography>
-              <Typography style={{ fontSize: '16px' }}>
-                {formatUnits(totalLPAmount, 18)}
-              </Typography>
-            </div>
-            <div
-              style={{
-                marginBottom: '14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography style={{ fontSize: '16px' }}>
-                Pooled {fromToken.symbol}:
-              </Typography>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
-                  {formatUnits(pooledETH, 18)}
-                </Typography>
                 <img
                   style={{
                     width: '20px',
@@ -299,47 +252,102 @@ function Pool() {
                   src={fromTokenState?.logoURI ?? fromToken.logoURI}
                   alt="token-logo"
                 />
-              </div>
-            </div>
-            <div
-              style={{
-                marginBottom: '14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography style={{ fontSize: '16px' }}>
-                Pooled {toToken.symbol}:
-              </Typography>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
-                  {formatUnits(pooledToken, tokenDecimals)}
-                </Typography>
                 <img
                   style={{
                     width: '20px',
                     height: '20px',
-                    marginRight: '-8px',
+                    marginRight: '8px',
                   }}
                   src={toTokenState?.logoURI ?? toToken.logoURI}
                   alt="token-logo"
                 />
+                <Typography
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {`${fromToken.symbol} / ${toToken.symbol}`}
+                </Typography>
               </div>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography style={{ fontSize: '16px' }}>
-                Your pool share:
-              </Typography>
-              <Typography style={{ fontSize: '16px' }}>
-                {sharesPercent}%
-              </Typography>
-            </div>
-            {/* <PrimaryContainedButton
+              <div
+                style={{
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography style={{ fontSize: '16px' }}>
+                  Your total LP tokens:
+                </Typography>
+                <Typography style={{ fontSize: '16px' }}>
+                  {formatUnits(totalLPAmount, 18)}
+                </Typography>
+              </div>
+              <div
+                style={{
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography style={{ fontSize: '16px' }}>
+                  Pooled {fromToken.symbol}:
+                </Typography>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
+                    {formatUnits(pooledETH, 18)}
+                  </Typography>
+                  <img
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      marginRight: '-8px',
+                    }}
+                    src={fromTokenState?.logoURI ?? fromToken.logoURI}
+                    alt="token-logo"
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography style={{ fontSize: '16px' }}>
+                  Pooled {toToken.symbol}:
+                </Typography>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
+                    {formatUnits(pooledToken, tokenDecimals)}
+                  </Typography>
+                  <img
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      marginRight: '-8px',
+                    }}
+                    src={toTokenState?.logoURI ?? toToken.logoURI}
+                    alt="token-logo"
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography style={{ fontSize: '16px' }}>
+                  Your pool share:
+                </Typography>
+                <Typography style={{ fontSize: '16px' }}>
+                  {sharesPercent}%
+                </Typography>
+              </div>
+              {/* <PrimaryContainedButton
               width="100%"
               height="38px"
               fontSize="18px"
@@ -349,6 +357,7 @@ function Pool() {
                 history.push('pools/1/remove');
               }}
             /> */}
+            </div>
           </div>
         </div>
       </div>

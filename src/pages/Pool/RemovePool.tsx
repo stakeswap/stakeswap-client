@@ -30,6 +30,7 @@ import {
   WETHAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
+import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
 
 export default function RemovePool() {
   const [removeAmountPercent, setRemoveAmountPercent] = useState<number>(0);
@@ -231,546 +232,572 @@ export default function RemovePool() {
 
   return (
     <div
-      style={{ marginTop: '90px', display: 'flex', justifyContent: 'center' }}
+      style={{
+        width: '1440px',
+        height: '1024px',
+        backgroundImage: `url(${CheckAddRemoveBackground})`,
+        backgroundRepeat: 'no-repeat',
+      }}
     >
       <div
         style={{
-          width: '830px',
-          padding: '20px 40px',
+          marginTop: '90px',
           display: 'flex',
-          flexDirection: 'column',
-          borderRadius: '20px',
-          boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
-          boxSizing: 'border-box',
+          justifyContent: 'center',
         }}
       >
-        <Typography style={{ fontSize: '24px', textAlign: 'center' }}>
-          Remove Liquidity
-        </Typography>
-        <Typography
-          style={{ margin: '50px 0 24px 0', color: primary, fontSize: '12px' }}
+        <div
+          style={{
+            width: '830px',
+            padding: '20px 40px',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: '20px',
+            backgroundColor: 'white',
+            boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
+            boxSizing: 'border-box',
+          }}
         >
-          Tip: Removing pool ... Lorem ipsum dolor sit, amet consectetur
-          adipisicing elit. Error voluptate nobis impedit autem porro, quaerat
-          assumenda eos labore? Nesciunt at vel assumenda, unde dolores delectus
-          accusantium ut laboriosam nulla distinctio.
-        </Typography>
-        <div style={{ display: 'flex' }}>
-          <div style={{ width: '410px', marginRight: '16px' }}>
-            <div
-              style={{
-                width: '100%',
-                marginBottom: '18px',
-                padding: '16px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                backgroundColor: secondary,
-                borderRadius: '16px',
-                boxSizing: 'border-box',
-              }}
-            >
-              <Typography style={{ fontSize: '12px' }}>
-                Remove Amount
-              </Typography>
-              <Typography style={{ fontSize: '40px' }}>
-                {removeAmountPercent}%
-              </Typography>
-              <Slider
-                size="small"
-                style={{ color: primary }}
-                defaultValue={0}
-                value={removeAmountPercent}
-                aria-label="Small"
-                valueLabelDisplay="auto"
-                onChange={handleRemoveAmountPercent}
-              />
-              <div style={{ display: 'flex' }}>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '24px',
-                    marginRight: '12px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => handleRemoveAmountPercentConstant(25)}
-                >
-                  25%
-                </div>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '24px',
-                    marginRight: '12px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => handleRemoveAmountPercentConstant(50)}
-                >
-                  50%
-                </div>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '24px',
-                    marginRight: '12px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => handleRemoveAmountPercentConstant(75)}
-                >
-                  75%
-                </div>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '24px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => handleRemoveAmountPercentConstant(100)}
-                >
-                  MAX
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                width: '100%',
-                padding: '16px 20px',
-                backgroundColor: secondary,
-                borderRadius: '16px',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-              }}
-            >
-              <Typography
+          <Typography style={{ fontSize: '24px', textAlign: 'center' }}>
+            Remove Liquidity
+          </Typography>
+          <Typography
+            style={{
+              margin: '50px 0 24px 0',
+              color: primary,
+              fontSize: '12px',
+            }}
+          >
+            Tip: Removing pool ... Lorem ipsum dolor sit, amet consectetur
+            adipisicing elit. Error voluptate nobis impedit autem porro, quaerat
+            assumenda eos labore? Nesciunt at vel assumenda, unde dolores
+            delectus accusantium ut laboriosam nulla distinctio.
+          </Typography>
+          <div style={{ display: 'flex' }}>
+            <div style={{ width: '410px', marginRight: '16px' }}>
+              <div
                 style={{
                   width: '100%',
-                  marginBottom: '12px',
-                  fontSize: '12px',
+                  marginBottom: '18px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  backgroundColor: secondary,
+                  borderRadius: '16px',
+                  boxSizing: 'border-box',
                 }}
               >
-                Your Position
-              </Typography>
+                <Typography style={{ fontSize: '12px' }}>
+                  Remove Amount
+                </Typography>
+                <Typography style={{ fontSize: '40px' }}>
+                  {removeAmountPercent}%
+                </Typography>
+                <Slider
+                  size="small"
+                  style={{ color: primary }}
+                  defaultValue={0}
+                  value={removeAmountPercent}
+                  aria-label="Small"
+                  valueLabelDisplay="auto"
+                  onChange={handleRemoveAmountPercent}
+                />
+                <div style={{ display: 'flex' }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '24px',
+                      marginRight: '12px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleRemoveAmountPercentConstant(25)}
+                  >
+                    25%
+                  </div>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '24px',
+                      marginRight: '12px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleRemoveAmountPercentConstant(50)}
+                  >
+                    50%
+                  </div>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '24px',
+                      marginRight: '12px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleRemoveAmountPercentConstant(75)}
+                  >
+                    75%
+                  </div>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '24px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleRemoveAmountPercentConstant(100)}
+                  >
+                    MAX
+                  </div>
+                </div>
+              </div>
               <div
                 style={{
-                  marginBottom: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
+                  width: '100%',
+                  padding: '16px 20px',
+                  backgroundColor: secondary,
+                  borderRadius: '16px',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer',
                 }}
               >
-                <img
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    marginRight: '-8px',
-                  }}
-                  src={TOKENLIST.tokenList[0].logoURI}
-                  alt="token-logo"
-                />
-                <img
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    marginRight: '8px',
-                  }}
-                  src={TOKENLIST.tokenList[1].logoURI}
-                  alt="token-logo"
-                />
                 <Typography
                   style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
+                    width: '100%',
+                    marginBottom: '12px',
+                    fontSize: '12px',
                   }}
                 >
-                  ETH / USDC
+                  Your Position
                 </Typography>
-              </div>
-              <div
-                style={{
-                  marginBottom: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Typography style={{ fontSize: '12px' }}>
-                  Your total pool tokens:
-                </Typography>
-                <Typography style={{ fontSize: '12px' }}>
-                  {formatUnits(totalLPAmount, 18)}
-                </Typography>
-              </div>
-              <div
-                style={{
-                  marginBottom: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Typography style={{ fontSize: '12px' }}>
-                  Pooled ETH:
-                </Typography>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography style={{ marginRight: '8px', fontSize: '12px' }}>
-                    {formatUnits(pooledETH, 18)}
-                  </Typography>
+                <div
+                  style={{
+                    marginBottom: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
                   <img
                     style={{
-                      width: '16px',
-                      height: '16px',
+                      width: '20px',
+                      height: '20px',
                       marginRight: '-8px',
                     }}
                     src={TOKENLIST.tokenList[0].logoURI}
                     alt="token-logo"
                   />
-                </div>
-              </div>
-              <div
-                style={{
-                  marginBottom: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Typography style={{ fontSize: '12px' }}>
-                  Pooled USDC:
-                </Typography>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography style={{ marginRight: '8px', fontSize: '12px' }}>
-                    {formatUnits(pooledToken, tokenDecimals)}
-                  </Typography>
                   <img
                     style={{
-                      width: '16px',
-                      height: '16px',
-                      marginRight: '-8px',
+                      width: '20px',
+                      height: '20px',
+                      marginRight: '8px',
                     }}
                     src={TOKENLIST.tokenList[1].logoURI}
                     alt="token-logo"
                   />
+                  <Typography
+                    style={{
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ETH / USDC
+                  </Typography>
+                </div>
+                <div
+                  style={{
+                    marginBottom: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography style={{ fontSize: '12px' }}>
+                    Your total pool tokens:
+                  </Typography>
+                  <Typography style={{ fontSize: '12px' }}>
+                    {formatUnits(totalLPAmount, 18)}
+                  </Typography>
+                </div>
+                <div
+                  style={{
+                    marginBottom: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography style={{ fontSize: '12px' }}>
+                    Pooled ETH:
+                  </Typography>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography
+                      style={{ marginRight: '8px', fontSize: '12px' }}
+                    >
+                      {formatUnits(pooledETH, 18)}
+                    </Typography>
+                    <img
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        marginRight: '-8px',
+                      }}
+                      src={TOKENLIST.tokenList[0].logoURI}
+                      alt="token-logo"
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    marginBottom: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography style={{ fontSize: '12px' }}>
+                    Pooled USDC:
+                  </Typography>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography
+                      style={{ marginRight: '8px', fontSize: '12px' }}
+                    >
+                      {formatUnits(pooledToken, tokenDecimals)}
+                    </Typography>
+                    <img
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        marginRight: '-8px',
+                      }}
+                      src={TOKENLIST.tokenList[1].logoURI}
+                      alt="token-logo"
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography style={{ fontSize: '12px' }}>
+                    Your pool share:
+                  </Typography>
+                  <Typography style={{ fontSize: '12px' }}>
+                    {sharesPercent}%
+                  </Typography>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Typography style={{ fontSize: '12px' }}>
-                  Your pool share:
-                </Typography>
-                <Typography style={{ fontSize: '12px' }}>
-                  {sharesPercent}%
-                </Typography>
-              </div>
             </div>
-          </div>
-          <ArrowForwardIcon
-            style={{ margin: '70px 16px 0 0', color: primary }}
-          />
-          <div
-            style={{
-              width: '300px',
-            }}
-          >
+            <ArrowForwardIcon
+              style={{ margin: '70px 16px 0 0', color: primary }}
+            />
             <div
               style={{
-                marginBottom: '16px',
-                padding: '16px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                backgroundColor: secondary,
-                borderRadius: '16px',
-                boxSizing: 'border-box',
+                width: '300px',
               }}
             >
               <div
                 style={{
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'end',
-                }}
-              >
-                <Typography
-                  style={{
-                    marginRight: '8px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  Receive Amount
-                </Typography>
-                <Typography style={{ fontSize: '12px', fontWeight: 'normal' }}>
-                  (include swap fee)
-                </Typography>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-around',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Typography
-                    style={{
-                      fontSize: '16px',
-                      color: '#575757',
-                    }}
-                  >
-                    {formatUnits(receiveETH, 18)}
-                  </Typography>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        marginRight: '8px',
-                      }}
-                      src={TOKENLIST.tokenList[0].logoURI}
-                      alt="token-logo"
-                    />
-                    <Typography
-                      style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#575757',
-                      }}
-                    >
-                      ETH
-                    </Typography>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Typography
-                    style={{
-                      fontSize: '16px',
-                      color: '#575757',
-                    }}
-                  >
-                    {formatUnits(receiveToken, tokenDecimals)}
-                  </Typography>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        marginRight: '8px',
-                      }}
-                      src={TOKENLIST.tokenList[1].logoURI}
-                      alt="token-logo"
-                    />
-                    <Typography
-                      style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#575757',
-                      }}
-                    >
-                      USDC
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  margin: '16px 0',
-                  textAlign: 'center',
-                }}
-              >
-                <AddIcon style={{ color: primary, fontSize: '20px' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'end' }}>
-                <Typography
-                  style={{
-                    marginBottom: '8px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  Staking Reward
-                </Typography>
-              </div>
-              <div
-                style={{
                   marginBottom: '16px',
+                  padding: '16px 20px',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'space-around',
+                  backgroundColor: secondary,
+                  borderRadius: '16px',
+                  boxSizing: 'border-box',
                 }}
               >
                 <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Typography
-                    style={{
-                      fontSize: '16px',
-                      color: '#575757',
-                    }}
-                  >
-                    {formatUnits(rewardETH, 18)}
-                  </Typography>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        marginRight: '8px',
-                      }}
-                      src={TOKENLIST.tokenList[0].logoURI}
-                      alt="token-logo"
-                    />
-                    <Typography
-                      style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#575757',
-                      }}
-                    >
-                      ETH
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-              <hr style={{ width: '100%', border: `0.5px solid ${primary}` }} />
-              <div style={{ display: 'flex', alignItems: 'end' }}>
-                <Typography
                   style={{
                     marginBottom: '8px',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  Total Reward
-                </Typography>
-              </div>
-              <div
-                style={{
-                  height: '80px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-around',
-                }}
-              >
-                <div
-                  style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    alignItems: 'end',
                   }}
                 >
                   <Typography
                     style={{
+                      marginRight: '8px',
                       fontSize: '16px',
-                      color: '#575757',
+                      fontWeight: 'bold',
                     }}
                   >
-                    {formatUnits(receiveETH.add(rewardETH), 18)}
+                    Receive Amount
                   </Typography>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        marginRight: '8px',
-                      }}
-                      src={TOKENLIST.tokenList[0].logoURI}
-                      alt="token-logo"
-                    />
-                    <Typography
-                      style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#575757',
-                      }}
-                    >
-                      ETH
-                    </Typography>
-                  </div>
+                  <Typography
+                    style={{ fontSize: '12px', fontWeight: 'normal' }}
+                  >
+                    (include swap fee)
+                  </Typography>
                 </div>
                 <div
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    flexDirection: 'column',
+                    justifyContent: 'space-around',
                   }}
                 >
-                  <Typography
+                  <div
                     style={{
-                      fontSize: '16px',
-                      color: '#575757',
+                      display: 'flex',
+                      justifyContent: 'space-between',
                     }}
                   >
-                    {formatUnits(receiveToken, tokenDecimals)}
-                  </Typography>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        marginRight: '8px',
-                      }}
-                      src={TOKENLIST.tokenList[1].logoURI}
-                      alt="token-logo"
-                    />
                     <Typography
                       style={{
                         fontSize: '16px',
-                        fontWeight: 'bold',
                         color: '#575757',
                       }}
                     >
-                      USDC
+                      {formatUnits(receiveETH, 18)}
                     </Typography>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <img
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          marginRight: '8px',
+                        }}
+                        src={TOKENLIST.tokenList[0].logoURI}
+                        alt="token-logo"
+                      />
+                      <Typography
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#575757',
+                        }}
+                      >
+                        ETH
+                      </Typography>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography
+                      style={{
+                        fontSize: '16px',
+                        color: '#575757',
+                      }}
+                    >
+                      {formatUnits(receiveToken, tokenDecimals)}
+                    </Typography>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <img
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          marginRight: '8px',
+                        }}
+                        src={TOKENLIST.tokenList[1].logoURI}
+                        alt="token-logo"
+                      />
+                      <Typography
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#575757',
+                        }}
+                      >
+                        USDC
+                      </Typography>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    margin: '16px 0',
+                    textAlign: 'center',
+                  }}
+                >
+                  <AddIcon style={{ color: primary, fontSize: '20px' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'end' }}>
+                  <Typography
+                    style={{
+                      marginBottom: '8px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Staking Reward
+                  </Typography>
+                </div>
+                <div
+                  style={{
+                    marginBottom: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-around',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography
+                      style={{
+                        fontSize: '16px',
+                        color: '#575757',
+                      }}
+                    >
+                      {formatUnits(rewardETH, 18)}
+                    </Typography>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <img
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          marginRight: '8px',
+                        }}
+                        src={TOKENLIST.tokenList[0].logoURI}
+                        alt="token-logo"
+                      />
+                      <Typography
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#575757',
+                        }}
+                      >
+                        ETH
+                      </Typography>
+                    </div>
+                  </div>
+                </div>
+                <hr
+                  style={{ width: '100%', border: `0.5px solid ${primary}` }}
+                />
+                <div style={{ display: 'flex', alignItems: 'end' }}>
+                  <Typography
+                    style={{
+                      marginBottom: '8px',
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Total Reward
+                  </Typography>
+                </div>
+                <div
+                  style={{
+                    height: '80px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-around',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography
+                      style={{
+                        fontSize: '16px',
+                        color: '#575757',
+                      }}
+                    >
+                      {formatUnits(receiveETH.add(rewardETH), 18)}
+                    </Typography>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <img
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          marginRight: '8px',
+                        }}
+                        src={TOKENLIST.tokenList[0].logoURI}
+                        alt="token-logo"
+                      />
+                      <Typography
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#575757',
+                        }}
+                      >
+                        ETH
+                      </Typography>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography
+                      style={{
+                        fontSize: '16px',
+                        color: '#575757',
+                      }}
+                    >
+                      {formatUnits(receiveToken, tokenDecimals)}
+                    </Typography>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <img
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          marginRight: '8px',
+                        }}
+                        src={TOKENLIST.tokenList[1].logoURI}
+                        alt="token-logo"
+                      />
+                      <Typography
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#575757',
+                        }}
+                      >
+                        USDC
+                      </Typography>
+                    </div>
                   </div>
                 </div>
               </div>
+              <PrimaryContainedButton
+                width="100%"
+                height="45px"
+                fontSize="18px"
+                text={
+                  !stakingTokenState?.approved || !stakingPermitSig
+                    ? 'Sign signature first'
+                    : 'Remove Liquidity'
+                }
+                borderRadius="24px"
+                onClick={unstakeAndremoveLiquidityWithPermit}
+              />
             </div>
-            <PrimaryContainedButton
-              width="100%"
-              height="45px"
-              fontSize="18px"
-              text={
-                !stakingTokenState?.approved || !stakingPermitSig
-                  ? 'Sign signature first'
-                  : 'Remove Liquidity'
-              }
-              borderRadius="24px"
-              onClick={unstakeAndremoveLiquidityWithPermit}
-            />
           </div>
         </div>
       </div>

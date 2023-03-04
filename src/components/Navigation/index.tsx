@@ -11,7 +11,7 @@ import Logo from '../../assets/logo-with-typo.png';
 const useStyles: any = makeStyles({
   root: {
     height: '64px',
-    width: '100%',
+    width: '1440px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
