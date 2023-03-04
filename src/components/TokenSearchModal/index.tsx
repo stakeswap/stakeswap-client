@@ -31,7 +31,6 @@ export default function TokenSearchModal(props: TokenSearchModalProps) {
   const [searchKeyword, setSearchKeyword] = React.useState('');
   const { tokenObject } = TOKENLIST;
   const [tokenList, setTokenList] = React.useState(TOKENLIST.tokenList);
-  console.log(tokenList);
 
   const handleSearchKeyword = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
