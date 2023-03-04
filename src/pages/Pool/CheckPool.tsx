@@ -100,14 +100,14 @@ export default function CheckPool() {
     if (!connected) return;
     if (stakingTokenState.approved) return;
 
-    (async () => {
+    const f = async () => {
       const nonce = await getPermitNonce(signer, stakingTokenState.address);
 
       permitMap[stakingTokenState.address] =
         permitMap[stakingTokenState.address] ?? {};
       let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
 
-      if (!sig) {
+      if (!stakingTokenState.approved && !sig) {
         sig = await generateSignature(
           signer,
           router.address,
@@ -120,7 +120,8 @@ export default function CheckPool() {
 
       // load unstaking data
       setStakingState(stakingState);
-    })().catch(console.error);
+    };
+    f().catch(console.error);
   }, [
     connected,
     router,

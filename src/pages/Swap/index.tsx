@@ -159,6 +159,8 @@ function Swap() {
     }
 
     await tx.wait(2);
+    setFromTokenAmountInput('0');
+    setToTokenAmountInput('0');
     setToToken(toToken); // update all state
   };
 

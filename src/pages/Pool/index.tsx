@@ -89,7 +89,7 @@ function Pool() {
         permitMap[stakingTokenState.address] ?? {};
       let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
 
-      if (!sig) {
+      if (!stakingTokenState.approved && !sig) {
         sig = await generateSignature(
           signer,
           router.address,

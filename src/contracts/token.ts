@@ -63,6 +63,7 @@ export function getPermitNonce(
   return LP__factory.connect(token, signer)
     .nonces(signer.getAddress())
     .then((n) => n.toHexString());
+  // return '0';
 }
 
 // PAIR STATE
@@ -113,9 +114,7 @@ export const stakingStateAtom = atom<
   }
 
   const nonce = await getPermitNonce(signer, stakingTokenState.address);
-
-  const stakingPermitSig = (permitMap[stakingTokenState.address] ?? [])[nonce];
-
+  const stakingPermitSig = (permitMap[stakingTokenState.address] ?? {})[nonce];
   if (!stakingTokenState.approved && !stakingPermitSig) {
     console.log('no approval data...');
     return;
@@ -154,6 +153,21 @@ export const stakingStateAtom = atom<
     : undefined;
 
   if (!unstakingData) return;
+
+  console.log('unstakingData updated');
+  console.log('  -  lp              : %s', formatUnits(unstakingData.lp, 27));
+  console.log(
+    '  -  ethAmount       : %s',
+    formatUnits(unstakingData.ethAmount, 18),
+  );
+  console.log(
+    '  -  poolETHAmount   : %s',
+    formatUnits(unstakingData.poolETHAmount, 18),
+  );
+  console.log(
+    '  -  rewardToStaker  : %s',
+    formatUnits(unstakingData.rewardToStaker, 18),
+  );
 
   set(unstakingDataAtom, unstakingData);
 });
@@ -353,7 +367,9 @@ function createTokenWrite(
     const stakingAddress = await factory.getStaking(tokenA, tokenB);
     const staking = Staking__factory.connect(stakingAddress, signer);
     set(stakingAtom, staking);
+    const prevStakingTokenState = get(stakingTokenStateAtom);
     const stakingTokenState = {
+      ...prevStakingTokenState,
       address: stakingAddress,
       decimals: 18,
       symbol: `STK-${token0State.symbol}-${token1State.symbol}`,

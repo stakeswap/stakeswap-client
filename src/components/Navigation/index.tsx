@@ -94,11 +94,11 @@ export default function Navigation() {
 
     const updater = debounce(() => {
       if (toToken) setToToken(toToken);
-      // if (stakingState) setStakingState(stakingState);
+      if (stakingState) setStakingState(stakingState);
     }, 4000);
 
     newProvider.on('block', (blockNumber) => {
-      // updater();
+      updater();
     });
   };
 
