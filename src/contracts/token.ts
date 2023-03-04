@@ -9,7 +9,13 @@ import { BigNumber, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import invariant from 'invariant';
 import { atom, Getter, PrimitiveAtom, Setter, WritableAtom } from 'jotai';
-import { Pair, Pair__factory, Staking, Staking__factory } from '../typechain';
+import {
+  LP__factory,
+  Pair,
+  Pair__factory,
+  Staking,
+  Staking__factory,
+} from '../typechain';
 import { IERC20 } from '../typechain/ERC20';
 import { ERC20__factory } from '../typechain/factories/lib/openzeppelin-contracts/contracts/token/ERC20';
 // eslint-disable-next-line import/no-cycle
@@ -43,20 +49,21 @@ export type TokenState = Token & {
 };
 
 // PERMIT SIGNATURE FOR LP AND STK
-export const lpPermitSigAtom = atom<null | Signature, [Signature], void>(
-  null,
-  (get, set, newSig) => {
-    const prev = get(lpPermitSigAtom);
-    if (!lpPermitSigAtom) set(lpPermitSigAtom, newSig);
-  },
-);
-export const stakingPermitSigAtom = atom<null | Signature, [Signature], void>(
-  null,
-  (get, set, newSig) => {
-    const prev = get(stakingPermitSigAtom);
-    if (!stakingPermitSigAtom) set(stakingPermitSigAtom, newSig);
-  },
-);
+export type PermitMapType = {
+  [token: string]: {
+    [nonce: string]: Signature;
+  };
+};
+export const permitMapAtom = atom<PermitMapType>({});
+
+export function getPermitNonce(
+  signer: ethers.providers.JsonRpcSigner,
+  token: string,
+) {
+  return LP__factory.connect(token, signer)
+    .nonces(signer.getAddress())
+    .then((n) => n.toHexString());
+}
 
 // PAIR STATE
 export const pairStateAtom = atom<null | {
@@ -91,7 +98,7 @@ export const stakingStateAtom = atom<
   const toTokenState = get(toTokenStateAtom);
   const stakingTokenState = get(stakingTokenStateAtom);
   const WETH = get(WETHAtom);
-  const stakingPermitSig = get(stakingPermitSigAtom);
+  const permitMap = get(permitMapAtom);
 
   if (
     !signer ||
@@ -104,6 +111,11 @@ export const stakingStateAtom = atom<
     console.log('not specified...');
     return;
   }
+
+  const nonce = await getPermitNonce(signer, stakingTokenState.address);
+
+  const stakingPermitSig = (permitMap[stakingTokenState.address] ?? [])[nonce];
+
   if (!stakingTokenState.approved && !stakingPermitSig) {
     console.log('no approval data...');
     return;
@@ -373,205 +385,205 @@ function createTokenWrite(
   };
 }
 
-let isTestScenarioRunning = false;
+const isTestScenarioRunning = false;
 
-async function runTestScenario(get: Getter, set: Setter) {
-  if (isTestScenarioRunning) return;
-  isTestScenarioRunning = true;
-  // assume: fromToken = ETH, toToken = USDC (set defualt)
-  const fromToken = get(fromTokenAtom);
-  invariant(fromToken, 'fromToken is not initalized');
-  const toToken = get(toTokenAtom);
-  invariant(toToken, 'toToken is not initalized');
+// async function runTestScenario(get: Getter, set: Setter) {
+//   if (isTestScenarioRunning) return;
+//   isTestScenarioRunning = true;
+//   // assume: fromToken = ETH, toToken = USDC (set defualt)
+//   const fromToken = get(fromTokenAtom);
+//   invariant(fromToken, 'fromToken is not initalized');
+//   const toToken = get(toTokenAtom);
+//   invariant(toToken, 'toToken is not initalized');
 
-  invariant(fromToken.symbol === 'ETH', 'NOT ETH');
-  invariant(toToken.symbol === 'USDC', 'NOT USDC');
+//   invariant(fromToken.symbol === 'ETH', 'NOT ETH');
+//   invariant(toToken.symbol === 'USDC', 'NOT USDC');
 
-  const fromTokenState = get(fromTokenStateAtom)!;
-  const toTokenState = get(toTokenStateAtom)!;
+//   const fromTokenState = get(fromTokenStateAtom)!;
+//   const toTokenState = get(toTokenStateAtom)!;
 
-  // load default contracts
-  const router = get(routerAtom);
-  invariant(router, 'router is not initalized');
-  const signer = get(signerAtom);
-  invariant(signer, 'signer is not initalized');
-  const signerAddress = get(signerAddressAtom);
-  invariant(signerAddress, 'signerAddress is not initalized');
-  const WETH = get(WETHAtom);
-  invariant(WETH, 'WETH is not initalized');
+//   // load default contracts
+//   const router = get(routerAtom);
+//   invariant(router, 'router is not initalized');
+//   const signer = get(signerAtom);
+//   invariant(signer, 'signer is not initalized');
+//   const signerAddress = get(signerAddressAtom);
+//   invariant(signerAddress, 'signerAddress is not initalized');
+//   const WETH = get(WETHAtom);
+//   invariant(WETH, 'WETH is not initalized');
 
-  const pair = get(pairAtom);
-  invariant(pair, 'pair is not initalized');
-  const staking = get(stakingAtom);
-  invariant(staking, 'staking is not initalized');
+//   const pair = get(pairAtom);
+//   invariant(pair, 'pair is not initalized');
+//   const staking = get(stakingAtom);
+//   invariant(staking, 'staking is not initalized');
 
-  const sorted =
-    (await pair.token0()).toLowerCase() ===
-    (fromToken.address === ethers.constants.AddressZero
-      ? WETH.address
-      : fromToken.address
-    ).toLowerCase();
+//   const sorted =
+//     (await pair.token0()).toLowerCase() ===
+//     (fromToken.address === ethers.constants.AddressZero
+//       ? WETH.address
+//       : fromToken.address
+//     ).toLowerCase();
 
-  // 1. add liquidity
-  {
-    console.log('1. add liquidity');
+//   // 1. add liquidity
+//   {
+//     console.log('1. add liquidity');
 
-    // 1.1 approve fromToken, toToken to router
-    {
-      if (!fromTokenState.isETH && !fromTokenState.approved) {
-        console.log('1.1 approve from token');
+//     // 1.1 approve fromToken, toToken to router
+//     {
+//       if (!fromTokenState.isETH && !fromTokenState.approved) {
+//         console.log('1.1 approve from token');
 
-        const tx = await ERC20__factory.connect(
-          fromTokenState.address,
-          signer,
-        ).approve(router.address, ethers.constants.MaxUint256);
-        await tx.wait(2);
+//         const tx = await ERC20__factory.connect(
+//           fromTokenState.address,
+//           signer,
+//         ).approve(router.address, ethers.constants.MaxUint256);
+//         await tx.wait(2);
 
-        // update fromTokenState
-        fromTokenState.approved = true;
-        set(fromTokenStateAtom, fromTokenState);
-      }
+//         // update fromTokenState
+//         fromTokenState.approved = true;
+//         set(fromTokenStateAtom, fromTokenState);
+//       }
 
-      if (!toTokenState.isETH && !toTokenState.approved) {
-        console.log('1.1 approve to token');
-        const tx = await ERC20__factory.connect(
-          toTokenState.address,
-          signer,
-        ).approve(router.address, ethers.constants.MaxUint256);
-        await tx.wait(2);
+//       if (!toTokenState.isETH && !toTokenState.approved) {
+//         console.log('1.1 approve to token');
+//         const tx = await ERC20__factory.connect(
+//           toTokenState.address,
+//           signer,
+//         ).approve(router.address, ethers.constants.MaxUint256);
+//         await tx.wait(2);
 
-        // update fromTokenState
-        toTokenState.approved = true;
-        set(toTokenStateAtom, toTokenState);
-      }
-    }
+//         // update fromTokenState
+//         toTokenState.approved = true;
+//         set(toTokenStateAtom, toTokenState);
+//       }
+//     }
 
-    // 1.2 add liquidity
-    {
-      const [r0, r1] = await pair.getReserves();
-      const [fromReserve, toReserve] = sortValueIfSorted(sorted, r0, r1);
+//     // 1.2 add liquidity
+//     {
+//       const [r0, r1] = await pair.getReserves();
+//       const [fromReserve, toReserve] = sortValueIfSorted(sorted, r0, r1);
 
-      // assume: initial liquidity is 1 ETH + 1600 or extra USDC)
-      const fromTokenAmount = parseUnits('1', fromToken.decimals);
-      const toTokenAmount =
-        fromReserve.eq(0) && toReserve.eq(0)
-          ? parseUnits('1600', toToken.decimals)
-          : await router.quote(fromTokenAmount, fromReserve, toReserve);
+//       // assume: initial liquidity is 1 ETH + 1600 or extra USDC)
+//       const fromTokenAmount = parseUnits('1', fromToken.decimals);
+//       const toTokenAmount =
+//         fromReserve.eq(0) && toReserve.eq(0)
+//           ? parseUnits('1600', toToken.decimals)
+//           : await router.quote(fromTokenAmount, fromReserve, toReserve);
 
-      console.log('fromReserve', formatUnits(fromReserve, fromToken.decimals));
-      console.log('toReserve', formatUnits(toReserve, toToken.decimals));
-      console.log(
-        'fromTokenAmount',
-        formatUnits(fromTokenAmount, fromToken.decimals),
-      );
-      console.log(
-        'toTokenAmount',
-        formatUnits(toTokenAmount, toToken.decimals),
-      );
+//       console.log('fromReserve', formatUnits(fromReserve, fromToken.decimals));
+//       console.log('toReserve', formatUnits(toReserve, toToken.decimals));
+//       console.log(
+//         'fromTokenAmount',
+//         formatUnits(fromTokenAmount, fromToken.decimals),
+//       );
+//       console.log(
+//         'toTokenAmount',
+//         formatUnits(toTokenAmount, toToken.decimals),
+//       );
 
-      console.log('1.2 add liquidity');
+//       console.log('1.2 add liquidity');
 
-      // if fromToken is not ETH, use addLiquidity instead of addLiquidityETH
-      const tx = await router
-        .connect(signer)
-        .addLiquidityETH(
-          toToken.address,
-          toTokenAmount,
-          toTokenAmount.mul(97).div(100),
-          fromTokenAmount.mul(97).div(100),
-          signerAddress,
-          await getDeadline(signer),
-          { value: fromTokenAmount },
-        );
+//       // if fromToken is not ETH, use addLiquidity instead of addLiquidityETH
+//       const tx = await router
+//         .connect(signer)
+//         .addLiquidityETH(
+//           toToken.address,
+//           toTokenAmount,
+//           toTokenAmount.mul(97).div(100),
+//           fromTokenAmount.mul(97).div(100),
+//           signerAddress,
+//           await getDeadline(signer),
+//           { value: fromTokenAmount },
+//         );
 
-      // wait 2 block and update state
-      await tx.wait(2);
-      set(toTokenAtom, toToken); // this invoke updating balance of tokens (from, to, lp, staking)
-      await sleep(2); // wait 2 sec...
-      console.log('LIQUIDITY ADDED');
-    }
-  }
+//       // wait 2 block and update state
+//       await tx.wait(2);
+//       set(toTokenAtom, toToken); // this invoke updating balance of tokens (from, to, lp, staking)
+//       await sleep(2); // wait 2 sec...
+//       console.log('LIQUIDITY ADDED');
+//     }
+//   }
 
-  // 2. stake LP totken
-  {
-    console.log('2. stake LP');
-    {
-      // assume user stake all LP token
-      const lpTokenState = get(lpTokenStateAtom)!;
-      let lpPermitSig = get(lpPermitSigAtom)!;
+//   // 2. stake LP totken
+//   {
+//     console.log('2. stake LP');
+//     {
+//       // assume user stake all LP token
+//       const lpTokenState = get(lpTokenStateAtom)!;
+//       let permitMap = get(permitMapAtom)!;
 
-      // 2.1 generate signature
-      if (!lpTokenState.approved && !lpPermitSig) {
-        console.log('2.1 generate signature');
-        lpPermitSig = await generateSignature(
-          signer,
-          router.address,
-          lpTokenState.address,
-        );
-        set(lpTokenStateAtom, lpTokenState);
-      }
+//       // 2.1 generate signature
+//       if (!lpTokenState.approved && !lpPermitSig) {
+//         console.log('2.1 generate signature');
+//         lpPermitSig = await generateSignature(
+//           signer,
+//           router.address,
+//           lpTokenState.address,
+//         );
+//         set(lpTokenStateAtom, lpTokenState);
+//       }
 
-      // 2.2 stake all LP token
-      console.log('2.2 stake all LP token');
-      const tokenA =
-        fromToken.address === ethers.constants.AddressZero
-          ? WETH.address
-          : fromToken.address;
-      const tokenB =
-        toToken.address === ethers.constants.AddressZero
-          ? WETH.address
-          : toToken.address;
+//       // 2.2 stake all LP token
+//       console.log('2.2 stake all LP token');
+//       const tokenA =
+//         fromToken.address === ethers.constants.AddressZero
+//           ? WETH.address
+//           : fromToken.address;
+//       const tokenB =
+//         toToken.address === ethers.constants.AddressZero
+//           ? WETH.address
+//           : toToken.address;
 
-      const tx = lpPermitSig
-        ? await router.stakeWithPermit(
-            tokenA,
-            tokenB,
-            lpTokenState.balance,
-            await getDeadline(signer),
-            true,
-            lpPermitSig.v,
-            lpPermitSig.r,
-            lpPermitSig.s,
-          )
-        : await router.stake(
-            tokenA,
-            tokenB,
-            lpTokenState.balance,
-            await getDeadline(signer),
-          );
+//       const tx = lpPermitSig
+//         ? await router.stakeWithPermit(
+//             tokenA,
+//             tokenB,
+//             lpTokenState.balance,
+//             await getDeadline(signer),
+//             true,
+//             lpPermitSig.v,
+//             lpPermitSig.r,
+//             lpPermitSig.s,
+//           )
+//         : await router.stake(
+//             tokenA,
+//             tokenB,
+//             lpTokenState.balance,
+//             await getDeadline(signer),
+//           );
 
-      await tx.wait(2);
+//       await tx.wait(2);
 
-      lpTokenState.approved = true;
-      // set(lpPermitSigAtom, null);
-      // set(lpTokenStateAtom, lpTokenState);
-    }
-  }
+//       lpTokenState.approved = true;
+//       // set(lpPermitSigAtom, null);
+//       // set(lpTokenStateAtom, lpTokenState);
+//     }
+//   }
 
-  // 3. swap USDC -> ETH
-  {
-    console.log('3. swap USDC -> ETH');
-  }
+//   // 3. swap USDC -> ETH
+//   {
+//     console.log('3. swap USDC -> ETH');
+//   }
 
-  // 4. unstake
-  // should the price manipulated...!
-  {
-    console.log('4. unstake');
-  }
+//   // 4. unstake
+//   // should the price manipulated...!
+//   {
+//     console.log('4. unstake');
+//   }
 
-  // 5. remove liquidity
-  {
-    console.log('5. remove liquidity');
-  }
+//   // 5. remove liquidity
+//   {
+//     console.log('5. remove liquidity');
+//   }
 
-  // await generatePermitSignatureOrApprove(
-  //   get,
-  //   set,
-  //   stakingAtom,
-  //   stakingAllowanceAtom,
-  //   stakingPermitSignatureAtom,
-  // );
-}
+//   // await generatePermitSignatureOrApprove(
+//   //   get,
+//   //   set,
+//   //   stakingAtom,
+//   //   stakingAllowanceAtom,
+//   //   stakingPermitSignatureAtom,
+//   // );
+// }
 
 export function sortValueIfSorted<T>(
   sorted: boolean,

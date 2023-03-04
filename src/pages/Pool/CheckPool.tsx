@@ -9,7 +9,7 @@ import {
 import React, { useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useAtom } from 'jotai';
-import { BigNumber, FixedNumber } from 'ethers';
+import { BigNumber, FixedNumber, Signature } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
 import { PrimaryContainedButton } from '../../components/util/button';
 import TOKENLIST from '../../resources/token-list.json';
@@ -21,14 +21,15 @@ import {
   fromTokenStateAtom,
   generateSignature,
   getDeadline,
+  getPermitNonce,
   lpTokenStateAtom,
   pairAtom,
   pairStateAtom,
+  permitMapAtom,
   routerAtom,
   signerAddressAtom,
   signerAtom,
   sortedAtom,
-  stakingPermitSigAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
@@ -63,7 +64,7 @@ export default function CheckPool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
-  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
+  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -97,18 +98,26 @@ export default function CheckPool() {
   // request STK permit signature
   useEffect(() => {
     if (!connected) return;
-
-    if (stakingTokenState.approved || stakingPermitSig) return;
+    if (stakingTokenState.approved) return;
 
     (async () => {
-      console.log('REQUEST PERMIT FOR STK');
-      const sig = await generateSignature(
-        signer,
-        router.address,
-        stakingTokenState.address,
-      );
-      // record signature
-      setStakingPermitSig(sig);
+      const nonce = await getPermitNonce(signer, stakingTokenState.address);
+
+      permitMap[stakingTokenState.address] =
+        permitMap[stakingTokenState.address] ?? {};
+      let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
+
+      if (!sig) {
+        sig = await generateSignature(
+          signer,
+          router.address,
+          stakingTokenState.address,
+        );
+
+        permitMap[stakingTokenState.address][nonce] = sig;
+        setPermitMap(permitMap);
+      }
+
       // load unstaking data
       setStakingState(stakingState);
     })().catch(console.error);
@@ -117,8 +126,8 @@ export default function CheckPool() {
     router,
     signer,
     stakingTokenState,
-    stakingPermitSig,
-    setStakingPermitSig,
+    permitMap,
+    setPermitMap,
     setStakingTokenState,
     setStakingState,
     stakingState,

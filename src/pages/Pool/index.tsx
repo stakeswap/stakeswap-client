@@ -23,12 +23,13 @@ import {
   signerAddressAtom,
   signerAtom,
   sortedAtom,
-  stakingPermitSigAtom,
+  permitMapAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
   toTokenStateAtom,
   WETHAtom,
+  getPermitNonce,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import PoolBackground from '../../assets/backgrounds/pool.png';
@@ -46,10 +47,10 @@ function Pool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
-  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
+  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [pairState] = useAtom(pairStateAtom);
-  const [stakingState] = useAtom(stakingStateAtom);
+  const [stakingState, setStakingState] = useAtom(stakingStateAtom);
 
   const [WETH] = useAtom(WETHAtom);
   const [router] = useAtom(routerAtom);
@@ -79,22 +80,39 @@ function Pool() {
   // request STK permit signature
   useEffect(() => {
     if (!connected) return;
+    if (stakingTokenState.approved) return;
 
-    if (!stakingTokenState.approved && !stakingPermitSig) {
-      generateSignature(signer, router.address, stakingTokenState.address).then(
-        (sig) => {
-          setStakingPermitSig(sig);
-        },
-      );
-    }
+    (async () => {
+      const nonce = await getPermitNonce(signer, stakingTokenState.address);
+
+      permitMap[stakingTokenState.address] =
+        permitMap[stakingTokenState.address] ?? {};
+      let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
+
+      if (!sig) {
+        sig = await generateSignature(
+          signer,
+          router.address,
+          stakingTokenState.address,
+        );
+
+        permitMap[stakingTokenState.address][nonce] = sig;
+        setPermitMap(permitMap);
+      }
+
+      // load unstaking data
+      setStakingState(stakingState);
+    })().catch(console.error);
   }, [
     connected,
     router,
     signer,
     stakingTokenState,
     setStakingTokenState,
-    stakingPermitSig,
-    setStakingPermitSig,
+    permitMap,
+    setPermitMap,
+    setStakingState,
+    stakingState,
   ]);
 
   const totalLPAmount =

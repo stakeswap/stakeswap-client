@@ -25,7 +25,7 @@ import {
   generateSignature,
   getDeadline,
   getOptimalAmountsToAddLiquidity,
-  lpPermitSigAtom,
+  permitMapAtom,
   lpTokenStateAtom,
   pairAtom,
   pairStateAtom,
@@ -38,6 +38,7 @@ import {
   toTokenAtom,
   toTokenStateAtom,
   WETHAtom,
+  getPermitNonce,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
@@ -70,7 +71,7 @@ export default function AddPool() {
   const [lpTokenState] = useAtom(lpTokenStateAtom);
   const [stakingTokenState] = useAtom(stakingTokenStateAtom);
   const [pairState] = useAtom(pairStateAtom);
-  const [lpPermitSig, setLpPermitSig] = useAtom(lpPermitSigAtom);
+  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [WETH] = useAtom(WETHAtom);
   const [router] = useAtom(routerAtom);
@@ -225,7 +226,9 @@ export default function AddPool() {
         : fromTokenAmount;
 
       if (withStaking) {
-        let sig: null | Signature = lpPermitSig;
+        const nonce = await getPermitNonce(signer, lpTokenState.address);
+        permitMap[lpTokenState.address] = permitMap[lpTokenState.address] ?? {};
+        let sig: null | Signature = permitMap[lpTokenState.address][nonce];
 
         if (lpTokenState.approved) {
           tx = await router.addLiquidityAndStakeETH(
@@ -243,7 +246,8 @@ export default function AddPool() {
               router!.address,
               lpTokenState.address,
             );
-            setLpPermitSig(sig);
+            permitMap[lpTokenState.address][nonce] = sig;
+            setPermitMap(permitMap);
           }
 
           console.log('call addLiquidityAndStakeETHWithPermit');

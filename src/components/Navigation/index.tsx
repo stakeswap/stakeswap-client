@@ -1,11 +1,16 @@
 import React from 'react';
 import { makeStyles } from '@mui/styles';
-import { Typography } from '@mui/material';
+import { debounce, Typography } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { useAtom } from 'jotai';
 import { PrimaryContainedButton } from '../util/button';
-import { providerAtom, signerAddressAtom } from '../../contracts';
+import {
+  providerAtom,
+  signerAddressAtom,
+  stakingStateAtom,
+  toTokenAtom,
+} from '../../contracts';
 import Logo from '../../assets/logo-with-typo.png';
 
 const useStyles: any = makeStyles({
@@ -43,6 +48,9 @@ export default function Navigation() {
 
   const [provider, setProvider] = useAtom(providerAtom);
   const [signerAddress] = useAtom(signerAddressAtom);
+
+  const [toToken, setToToken] = useAtom(toTokenAtom);
+  const [stakingState, setStakingState] = useAtom(stakingStateAtom);
 
   const handleConnectWallet = async () => {
     const newProvider = new ethers.providers.Web3Provider(
@@ -83,6 +91,15 @@ export default function Navigation() {
     }
 
     setProvider(newProvider);
+
+    const updater = debounce(() => {
+      if (toToken) setToToken(toToken);
+      // if (stakingState) setStakingState(stakingState);
+    }, 4000);
+
+    newProvider.on('block', (blockNumber) => {
+      // updater();
+    });
   };
 
   return (

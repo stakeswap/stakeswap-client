@@ -21,14 +21,16 @@ import {
   signerAtom,
   sleep,
   sortedAtom,
-  stakingPermitSigAtom,
+  permitMapAtom,
   stakingStateAtom,
   stakingTokenStateAtom,
   toTokenAtom,
   toTokenStateAtom,
   unstakingDataAtom,
   WETHAtom,
+  getPermitNonce,
 } from '../../contracts';
+
 import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
 
@@ -56,7 +58,7 @@ export default function RemovePool() {
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
-  const [stakingPermitSig, setStakingPermitSig] = useAtom(stakingPermitSigAtom);
+  const [permitMap, setPermitMap] = useAtom(permitMapAtom);
 
   const [pairState] = useAtom(pairStateAtom);
   const [stakingState, setStakingState] = useAtom(stakingStateAtom);
@@ -90,17 +92,26 @@ export default function RemovePool() {
   // request STK permit signature
   useEffect(() => {
     if (!connected) return;
-    if (stakingTokenState.approved || stakingPermitSig) return;
+    if (stakingTokenState.approved) return;
 
     (async () => {
-      const sig = await generateSignature(
-        signer,
-        router.address,
-        stakingTokenState.address,
-      );
+      const nonce = await getPermitNonce(signer, stakingTokenState.address);
 
-      // record signature
-      setStakingPermitSig(sig);
+      permitMap[stakingTokenState.address] =
+        permitMap[stakingTokenState.address] ?? {};
+      let sig: null | Signature = permitMap[stakingTokenState.address][nonce];
+
+      if (!sig) {
+        sig = await generateSignature(
+          signer,
+          router.address,
+          stakingTokenState.address,
+        );
+
+        permitMap[stakingTokenState.address][nonce] = sig;
+        setPermitMap(permitMap);
+      }
+
       // load unstaking data
       setStakingState(stakingState);
     })().catch(console.error);
@@ -109,21 +120,10 @@ export default function RemovePool() {
     router,
     signer,
     stakingTokenState,
-    stakingPermitSig,
-    setStakingPermitSig,
+    permitMap,
+    setPermitMap,
     setStakingState,
     stakingState,
-  ]);
-
-  // update stakingState
-  useEffect(() => {
-    if (stakingState) sleep(1).then(() => setStakingState(stakingState));
-  }, [
-    stakingState,
-    setStakingState,
-    stakingTokenState,
-    unstakingData,
-    stakingPermitSig,
   ]);
 
   const totalLPAmount =
@@ -205,15 +205,11 @@ export default function RemovePool() {
         getDeadline(signer),
       );
     } else {
-      let sig: typeof stakingPermitSig = stakingPermitSig;
+      const nonce = await getPermitNonce(signer, stakingTokenState.address);
+      const sig = (permitMap[stakingTokenState.address] ?? {})[nonce];
       if (!sig) {
         console.log('unstakeAndremoveLiquidityWithPermit: sig not provided');
-        sig = await generateSignature(
-          signer,
-          router.address,
-          stakingTokenState.address,
-        );
-        setStakingPermitSig(sig);
+        return;
       }
 
       await router.unstakeAndRemoveLiquidityWithPermit(
@@ -789,11 +785,7 @@ export default function RemovePool() {
                 width="100%"
                 height="45px"
                 fontSize="18px"
-                text={
-                  !stakingTokenState?.approved || !stakingPermitSig
-                    ? 'Sign signature first'
-                    : 'Remove Liquidity'
-                }
+                text="Remove Liquidity"
                 borderRadius="24px"
                 onClick={unstakeAndremoveLiquidityWithPermit}
               />
