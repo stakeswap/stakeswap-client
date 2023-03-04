@@ -1,13 +1,19 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
+import { formatEther, formatUnits } from 'ethers/lib/utils';
 import invariant from 'invariant';
 import { atom, PrimitiveAtom } from 'jotai';
+import { round } from 'lodash';
 
 import DEPLOYMENT from '../contract-deployment.json';
 import {
+  BaseAdaptor__factory,
   Factory,
   Factory__factory,
+  FraxAdaptor,
+  LidoAdaptor,
   LSDAggregator,
   LSDAggregator__factory,
+  RocketPoolAdaptor,
   Router,
   Router__factory,
   WETHInterface,
@@ -23,6 +29,8 @@ export const deploymentAtom = atom<null | typeof DEPLOYMENT.hardhat>(null);
 export const chainIdAtom = atom<null | number>(null);
 export const signerAtom = atom<null | ethers.providers.JsonRpcSigner>(null);
 export const signerAddressAtom = atom<null | string>(null);
+
+export const rewardAPRAtom = atom<number>(6.5);
 
 export type SignerAtomType = PrimitiveAtom<TokenState | null>;
 
@@ -80,4 +88,29 @@ export const providerAtom = atom<
   // // default token pair: ETH-USDC
   set(fromTokenAtom, ETH);
   set(toTokenAtom, USDC);
+
+  const adaptors = await Promise.all([
+    aggregator.adaptors(0).then((a) => BaseAdaptor__factory.connect(a, signer)),
+    aggregator.adaptors(1).then((a) => BaseAdaptor__factory.connect(a, signer)),
+    aggregator.adaptors(2).then((a) => BaseAdaptor__factory.connect(a, signer)),
+  ]);
+  const aprs = await Promise.all(adaptors.map((a) => a.getAPR()));
+
+  const depositWeights = await Promise.all(
+    adaptors.map((a) => aggregator.depositWeights(a.address)),
+  );
+  const buyWeights = await Promise.all(
+    adaptors.map((a) => aggregator.buyWeights(a.address)),
+  );
+  const DENOMINATOR = BigNumber.from(10_000);
+  const apr = aprs
+    .reduce((acc, a, i) => {
+      const dw = depositWeights[i];
+      const bw = buyWeights[i];
+      const w = dw.add(bw);
+      return a.mul(w).div(DENOMINATOR).add(acc);
+    })
+    .mul(100);
+
+  set(rewardAPRAtom, round(parseFloat(formatUnits(apr, 18)), 2));
 });

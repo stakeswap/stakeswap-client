@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/naming-convention */
+import { round } from 'lodash';
 import {
   alpha,
   debounce,
@@ -39,6 +40,7 @@ import {
   WETHAtom,
   getPermitNonce,
   splitSignature,
+  rewardAPRAtom,
 } from '../../contracts';
 import { ERC20__factory } from '../../typechain';
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
@@ -61,7 +63,7 @@ export default function AddPool() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [rewardAPR, setRewardAPR] = useState(2.63);
+  const [rewardAPR] = useAtom(rewardAPRAtom);
 
   const [toToken, setToToken] = useAtom(toTokenAtom);
   const [signer] = useAtom(signerAtom);
@@ -78,6 +80,7 @@ export default function AddPool() {
   const [sorted] = useAtom(sortedAtom);
 
   const connected =
+    rewardAPR &&
     toToken &&
     signer &&
     signerAddress &&
@@ -97,7 +100,7 @@ export default function AddPool() {
   const [withStaking, setWithStaking] = useState(true);
   const handleWithStaking = () => {
     setWithStaking(!withStaking);
-    setRewardAPR(0);
+    // setRewardAPR(0);
   };
 
   const calcToAmount = debounce(async (fromTokenAmountInput: string) => {
@@ -484,7 +487,7 @@ export default function AddPool() {
             >
               <Typography style={{ fontSize: '12px' }}>Total APR:</Typography>
               <Typography style={{ color: primary, fontSize: '12px' }}>
-                {rewardAPR > 0 ? rewardAPR * 4 : 6.63} %
+                {connected ? round(rewardAPR * 1.2, 2) : 6.63} %
               </Typography>
             </div>
             <div
@@ -496,7 +499,7 @@ export default function AddPool() {
             >
               <Typography style={{ fontSize: '12px' }}>Fee APR:</Typography>
               <Typography style={{ color: primary, fontSize: '12px' }}>
-                {rewardAPR > 0 ? rewardAPR * 3 : 6.63} %
+                {connected ? round(rewardAPR * 1.5, 2) : 8.3} %
               </Typography>
             </div>
             {withStaking ? (
