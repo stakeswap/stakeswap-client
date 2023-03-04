@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { debounce, FormControlLabel, Switch, Typography } from '@mui/material';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ContractTransaction, ethers } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useAtom } from 'jotai';
 import { throttle } from 'lodash';
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import TokenSearchModal from '../../components/TokenSearchModal';
 import {
   PrimaryContainedButton,
@@ -30,6 +31,7 @@ import {
 import { ERC20__factory } from '../../typechain';
 
 export default function AddPool() {
+  const history = useHistory();
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -47,7 +49,15 @@ export default function AddPool() {
   const [pair] = useAtom(pairAtom);
   const [sorted] = useAtom(sortedAtom);
 
-  const connected = router && pair;
+  const connected =
+    toToken &&
+    signer &&
+    signerAddress &&
+    fromTokenState &&
+    toTokenState &&
+    lpTokenState &&
+    stakingTokenState &&
+    sorted !== null;
 
   const [fromTokenAmountInput, _setFromTokenAmountInput] = useState('0');
   const [toTokenAmountInput, _setToTokenAmountInput] = useState('0');
@@ -56,6 +66,7 @@ export default function AddPool() {
 
   const checkAndSetInput = debounce(
     async (value: string, isFromTokenSet: boolean) => {
+      if (!connected) return;
       let fromTokenAmount = isFromTokenSet ? value : fromTokenAmountInput;
       let toTokenAmount = isFromTokenSet ? toTokenAmountInput : value;
 
@@ -64,6 +75,11 @@ export default function AddPool() {
         sorted,
         r0,
         r1,
+      );
+
+      const k = fromTokenReserve.mul(toTokenReserve);
+      const tooSmallK = k.lte(
+        parseUnits('1', fromTokenState.decimals + toTokenState.decimals),
       );
 
       if (fromTokenReserve.eq(0) && toTokenReserve.eq(0)) {
@@ -119,7 +135,13 @@ export default function AddPool() {
   };
 
   const addLiquidity = async () => {
+    if (!connected) return;
     const [r0, r1] = await pair!.getReserves();
+
+    const k = r0.mul(r1);
+    const tooSmallK = k.lte(
+      parseUnits('1', fromTokenState.decimals + toTokenState.decimals),
+    );
 
     // check allowance
     if (!fromTokenState!.isETH && !fromTokenState!.approved) {
@@ -156,6 +178,8 @@ export default function AddPool() {
       toTokenState!.decimals,
     );
 
+    let tx: ContractTransaction;
+
     if (fromTokenState!.isETH || toTokenState!.isETH) {
       const tokenAddress = fromTokenState!.isETH
         ? toTokenState!.address
@@ -166,40 +190,43 @@ export default function AddPool() {
         : fromTokenAmount;
 
       if (withStaking) {
-        await router!.addLiquidityAndStakeETH(
+        tx = await router!.addLiquidityAndStakeETH(
           tokenAddress,
           tokenAmount,
-          tokenAmount.mul(97).div(100),
-          ethAmount.mul(97).div(100),
+          tooSmallK ? 0 : tokenAmount.mul(97).div(100),
+          tooSmallK ? 0 : ethAmount.mul(97).div(100),
           signerAddress!,
           await getDeadline(signer!),
           { value: ethAmount },
         );
       } else {
-        await router!.addLiquidityETH(
+        tx = await router!.addLiquidityETH(
           tokenAddress,
           tokenAmount,
-          tokenAmount.mul(97).div(100),
-          ethAmount.mul(97).div(100),
+          tooSmallK ? 0 : tokenAmount.mul(97).div(100),
+          tooSmallK ? 0 : ethAmount.mul(97).div(100),
           signerAddress!,
           await getDeadline(signer!),
           { value: ethAmount },
         );
       }
     } else {
-      await router!.addLiquidity(
+      tx = await router!.addLiquidity(
         fromTokenState!.isETH ? WETH!.address : fromTokenState!.address,
         toTokenState!.isETH ? WETH!.address : toTokenState!.address,
         fromTokenAmount,
         toTokenAmount,
-        fromTokenAmount.mul(97).div(100),
-        toTokenAmount.mul(97).div(100),
+        tooSmallK ? 0 : fromTokenAmount.mul(97).div(100),
+        tooSmallK ? 0 : toTokenAmount.mul(97).div(100),
         signerAddress!,
         await getDeadline(signer!),
       );
     }
 
-    await setToToken(toToken); // update all state
+    await tx.wait(2);
+    setToToken(toToken); // update all state
+    // TODO: redirect to pool page
+    history.push('/pools/1');
   };
 
   return (

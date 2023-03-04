@@ -1,12 +1,218 @@
 import { Slider, Typography } from '@mui/material';
-import React from 'react';
+import React, { useEffect } from 'react';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AddIcon from '@mui/icons-material/Add';
+import { useAtom } from 'jotai';
+import { BigNumber, ethers, FixedNumber, Signature } from 'ethers';
+import { formatUnits } from 'ethers/lib/utils';
 import { primary, secondary } from '../../components/util/colors';
 import TOKENLIST from '../../resources/token-list.json';
 import { PrimaryContainedButton } from '../../components/util/button';
+import {
+  fromTokenAtom,
+  fromTokenStateAtom,
+  generateSignature,
+  getDeadline,
+  lpTokenStateAtom,
+  pairAtom,
+  pairStateAtom,
+  routerAtom,
+  signerAddressAtom,
+  signerAtom,
+  sortedAtom,
+  stakingStateAtom,
+  stakingTokenStateAtom,
+  toTokenAtom,
+  toTokenStateAtom,
+  unstakingDataAtom,
+  WETHAtom,
+} from '../../contracts';
+import { ERC20__factory } from '../../typechain';
 
 export default function RemovePool() {
+  const [fromToken] = useAtom(fromTokenAtom);
+  const [toToken, setToToken] = useAtom(toTokenAtom);
+  const [signer] = useAtom(signerAtom);
+  const [signerAddress] = useAtom(signerAddressAtom);
+  const [fromTokenState] = useAtom(fromTokenStateAtom);
+  const [toTokenState] = useAtom(toTokenStateAtom);
+  const [lpTokenState] = useAtom(lpTokenStateAtom);
+  const [stakingTokenState, setStakingTokenState] = useAtom(
+    stakingTokenStateAtom,
+  );
+
+  const [pairState] = useAtom(pairStateAtom);
+  const [stakingState, setStakingState] = useAtom(stakingStateAtom);
+
+  const [WETH] = useAtom(WETHAtom);
+  const [router] = useAtom(routerAtom);
+  const [pair] = useAtom(pairAtom);
+  const [sorted] = useAtom(sortedAtom);
+  const [unstakingData] = useAtom(unstakingDataAtom);
+
+  useEffect(() => {
+    if (!toTokenState) setToToken(toToken);
+  }, [toTokenState, toToken, setToToken]);
+
+  const connected =
+    fromToken &&
+    toToken &&
+    signer &&
+    signerAddress &&
+    fromTokenState &&
+    toTokenState &&
+    lpTokenState &&
+    stakingTokenState &&
+    WETH &&
+    router &&
+    pair &&
+    pairState &&
+    stakingState &&
+    sorted !== null;
+
+  // request STK permit signature
+  useEffect(() => {
+    if (!connected) return;
+
+    (async () => {
+      if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+        const sig = await generateSignature(
+          signer,
+          router.address,
+          stakingTokenState.address,
+        );
+
+        // record signature
+        setStakingTokenState({
+          ...stakingTokenState,
+          permitSignature: sig,
+        });
+        // load unstaking data
+        setStakingState(stakingState);
+      }
+    })().catch(console.error);
+  }, [
+    connected,
+    router,
+    signer,
+    stakingTokenState,
+    stakingTokenState?.approved,
+    stakingTokenState?.permitSignature,
+    setStakingTokenState,
+    setStakingState,
+    stakingState,
+  ]);
+
+  const totalLPAmount =
+    !connected || stakingState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : lpTokenState.balance.add(
+          stakingState.lpBalance
+            .mul(stakingTokenState.balance)
+            .div(stakingState.totalSupply),
+        );
+
+  const pooledETH =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.ethReserve;
+  const pooledToken =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.tokenReserve;
+
+  const tokenDecimals = !connected
+    ? 18
+    : fromTokenState.isETH
+    ? toTokenState.decimals
+    : fromTokenState.decimals;
+  const sharesPercent =
+    !connected || pairState.totalSupply.eq(0)
+      ? '0'
+      : FixedNumber.fromValue(totalLPAmount, 18)
+          .mulUnsafe(FixedNumber.fromString('100'))
+          .divUnsafe(FixedNumber.fromValue(pairState.totalSupply, 18))
+          .toString();
+
+  // assume user input
+  // TODO: connect to slide bar
+  const removeAmountPercent = 100; // 100 percent
+
+  // asume price
+  // TODO: fetch token price from coingecko
+  const priceETH = 1560;
+  const priceToken = 0.98;
+
+  const pooledETHUSD =
+    parseFloat(FixedNumber.fromValue(pooledETH, 18).toString()) * priceETH;
+  const pooledTokenUSD =
+    parseFloat(FixedNumber.fromValue(pooledToken, tokenDecimals).toString()) *
+    priceToken;
+  const totalPooledUSD = pooledETHUSD + pooledTokenUSD;
+
+  // from staking reward
+  const rewardETH = unstakingData?.rewardToStaker ?? BigNumber.from(0);
+  const rewardETHUSD =
+    parseFloat(FixedNumber.fromValue(rewardETH, 18).toString()) * priceETH;
+
+  // from LP portion of pool
+  const receiveETH =
+    !lpTokenState || !pairState || pairState?.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pooledETH
+          .mul(totalLPAmount)
+          .div(pairState.totalSupply)
+          .mul(removeAmountPercent)
+          .div(100);
+  const receiveToken =
+    !lpTokenState || !pairState || pairState?.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pooledToken
+          .mul(totalLPAmount)
+          .div(pairState.totalSupply)
+          .mul(removeAmountPercent)
+          .div(100);
+
+  const unstakeAndremoveLiquidityWithPermit = async () => {
+    if (!connected) return;
+
+    let signature: Signature | undefined = stakingTokenState.permitSignature;
+
+    if (!signature) {
+      console.log('no permit sig provided');
+
+      await generateSignature(
+        signer,
+        router.address,
+        stakingTokenState.address,
+      ).then((sig) => {
+        // record signature
+        setStakingTokenState({
+          ...stakingTokenState,
+          permitSignature: sig,
+        });
+        // load unstaking data
+        setStakingState(stakingState);
+        signature = sig;
+      });
+
+      return;
+    }
+
+    await router.unstakeAndremoveLiquidityWithPermit(
+      fromTokenState.isETH ? toTokenState.address : fromTokenState.address,
+      stakingTokenState.balance.mul(removeAmountPercent).div(100),
+      getDeadline(signer),
+      signature.v,
+      signature.r,
+      signature.s,
+    );
+
+    setToToken(toToken); // update
+
+    console.log('LIQUIDITY REMOVED');
+  };
+
   return (
     <div
       style={{ marginTop: '90px', display: 'flex', justifyContent: 'center' }}
@@ -189,7 +395,7 @@ export default function RemovePool() {
                   Your total pool tokens:
                 </Typography>
                 <Typography style={{ fontSize: '12px' }}>
-                  0.000000001087
+                  {formatUnits(totalLPAmount, 18)}
                 </Typography>
               </div>
               <div
@@ -204,7 +410,7 @@ export default function RemovePool() {
                 </Typography>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <Typography style={{ marginRight: '8px', fontSize: '12px' }}>
-                    0.00000603019
+                    {formatUnits(pooledETH, 18)}
                   </Typography>
                   <img
                     style={{
@@ -229,7 +435,7 @@ export default function RemovePool() {
                 </Typography>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <Typography style={{ marginRight: '8px', fontSize: '12px' }}>
-                    0.00000603019
+                    {formatUnits(pooledToken, tokenDecimals)}
                   </Typography>
                   <img
                     style={{
@@ -251,7 +457,9 @@ export default function RemovePool() {
                 <Typography style={{ fontSize: '12px' }}>
                   Your pool share:
                 </Typography>
-                <Typography style={{ fontSize: '12px' }}>0.000242%</Typography>
+                <Typography style={{ fontSize: '12px' }}>
+                  {sharesPercent}%
+                </Typography>
               </div>
             </div>
           </div>
@@ -313,7 +521,7 @@ export default function RemovePool() {
                       color: '#575757',
                     }}
                   >
-                    0.00000594
+                    {formatUnits(receiveETH, 18)}
                   </Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img
@@ -348,7 +556,7 @@ export default function RemovePool() {
                       color: '#575757',
                     }}
                   >
-                    0.1045
+                    {formatUnits(receiveToken, tokenDecimals)}
                   </Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img
@@ -411,7 +619,7 @@ export default function RemovePool() {
                       color: '#575757',
                     }}
                   >
-                    0.00000594
+                    {formatUnits(rewardETH, 18)}
                   </Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img
@@ -467,7 +675,7 @@ export default function RemovePool() {
                       color: '#575757',
                     }}
                   >
-                    0.00000594
+                    {formatUnits(receiveETH.add(rewardETH), 18)}
                   </Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img
@@ -502,7 +710,7 @@ export default function RemovePool() {
                       color: '#575757',
                     }}
                   >
-                    0.1045
+                    {formatUnits(receiveToken, tokenDecimals)}
                   </Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img
@@ -531,9 +739,15 @@ export default function RemovePool() {
               width="100%"
               height="45px"
               fontSize="18px"
-              text="Approve"
+              text={
+                stakingTokenState?.approved === undefined
+                  ? 'Approve'
+                  : stakingTokenState?.approved
+                  ? 'Remove Liquidity'
+                  : 'Approve'
+              }
               borderRadius="24px"
-              onClick=""
+              onClick={unstakeAndremoveLiquidityWithPermit}
             />
           </div>
         </div>

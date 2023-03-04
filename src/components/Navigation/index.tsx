@@ -5,7 +5,7 @@ import { useHistory } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { useAtom } from 'jotai';
 import { PrimaryContainedButton } from '../util/button';
-import { providerAtom } from '../../contracts';
+import { providerAtom, signerAddressAtom } from '../../contracts';
 import Logo from '../../assets/logo-with-typo.png';
 
 const useStyles: any = makeStyles({
@@ -42,6 +42,7 @@ export default function Navigation() {
   const history = useHistory();
 
   const [provider, setProvider] = useAtom(providerAtom);
+  const [signerAddress] = useAtom(signerAddressAtom);
 
   const handleConnectWallet = async () => {
     const newProvider = new ethers.providers.Web3Provider(
@@ -113,14 +114,28 @@ export default function Navigation() {
           Pool
         </Typography>
       </div>
-      <PrimaryContainedButton
-        width="160px"
-        height="36px"
-        text="Connect Wallet"
-        fontSize="15px"
-        borderRadius="10px"
-        onClick={handleConnectWallet}
-      />
+
+      {signerAddress ? (
+        <PrimaryContainedButton
+          width="160px"
+          height="36px"
+          text={`${signerAddress.slice(0, 6)}...${signerAddress.slice(-4)}`}
+          fontSize="15px"
+          borderRadius="10px"
+          onClick={() => {
+            console.log('signer: %s', signerAddress);
+          }}
+        />
+      ) : (
+        <PrimaryContainedButton
+          width="160px"
+          height="36px"
+          text="Connect Wallet"
+          fontSize="15px"
+          borderRadius="10px"
+          onClick={handleConnectWallet}
+        />
+      )}
     </div>
   );
 }

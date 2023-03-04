@@ -1,16 +1,124 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Typography } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 // import WalletIcon from '@mui/icons-material/Wallet';
+import { useAtom } from 'jotai';
+import { formatUnits } from 'ethers/lib/utils';
+import { BigNumber, FixedNumber, Signature } from 'ethers';
 import {
   // GradientContainedButton,
   PrimaryContainedButton,
 } from '../../components/util/button';
 import TOKENLIST from '../../resources/token-list.json';
 import { secondary } from '../../components/util/colors';
+import {
+  fromTokenAtom,
+  fromTokenStateAtom,
+  generateSignature,
+  getDeadline,
+  lpTokenStateAtom,
+  pairAtom,
+  pairStateAtom,
+  routerAtom,
+  signerAddressAtom,
+  signerAtom,
+  sortedAtom,
+  stakingStateAtom,
+  stakingTokenStateAtom,
+  toTokenAtom,
+  toTokenStateAtom,
+  WETHAtom,
+} from '../../contracts';
+import { ERC20__factory } from '../../typechain';
 
 function Pool() {
   const history = useHistory();
+
+  const [fromToken] = useAtom(fromTokenAtom);
+  const [toToken, setToToken] = useAtom(toTokenAtom);
+  const [signer] = useAtom(signerAtom);
+  const [signerAddress] = useAtom(signerAddressAtom);
+  const [fromTokenState] = useAtom(fromTokenStateAtom);
+  const [toTokenState] = useAtom(toTokenStateAtom);
+  const [lpTokenState] = useAtom(lpTokenStateAtom);
+  const [stakingTokenState, setStakingTokenState] = useAtom(
+    stakingTokenStateAtom,
+  );
+
+  const [pairState] = useAtom(pairStateAtom);
+  const [stakingState] = useAtom(stakingStateAtom);
+
+  const [WETH] = useAtom(WETHAtom);
+  const [router] = useAtom(routerAtom);
+  const [pair] = useAtom(pairAtom);
+  const [sorted] = useAtom(sortedAtom);
+
+  useEffect(() => {
+    if (!toTokenState) setToToken(toToken);
+  }, [toTokenState, toToken, setToToken]);
+
+  const connected =
+    fromToken &&
+    toToken &&
+    signer &&
+    signerAddress &&
+    fromTokenState &&
+    toTokenState &&
+    lpTokenState &&
+    stakingTokenState &&
+    WETH &&
+    router &&
+    pair &&
+    pairState &&
+    stakingState &&
+    sorted !== null;
+
+  // request STK permit signature
+  useEffect(() => {
+    if (!connected) return;
+
+    if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+      generateSignature(signer, router.address, stakingTokenState.address).then(
+        (sig) => {
+          setStakingTokenState({
+            ...stakingTokenState,
+            permitSignature: sig,
+          });
+        },
+      );
+    }
+  }, [connected, router, signer, stakingTokenState, setStakingTokenState]);
+
+  const totalLPAmount =
+    !connected || stakingState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : lpTokenState.balance.add(
+          stakingState.lpBalance
+            .mul(stakingTokenState.balance)
+            .div(stakingState.totalSupply),
+        );
+  const pooledETH =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.ethReserve;
+  const pooledToken =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.tokenReserve;
+  const tokenDecimals = !connected
+    ? 18
+    : fromTokenState.isETH
+    ? toTokenState.decimals
+    : fromTokenState.decimals;
+
+  const sharesPercent =
+    !connected || pairState.totalSupply.eq(0)
+      ? '0'
+      : FixedNumber.fromValue(totalLPAmount, 18)
+          .mulUnsafe(FixedNumber.fromString('100'))
+          .divUnsafe(FixedNumber.fromValue(pairState.totalSupply, 18))
+          .toString();
+
   return (
     <div
       style={{
@@ -129,7 +237,7 @@ function Pool() {
                   height: '20px',
                   marginRight: '-8px',
                 }}
-                src={TOKENLIST.tokenList[0].logoURI}
+                src={fromTokenState?.logoURI ?? fromToken.logoURI}
                 alt="token-logo"
               />
               <img
@@ -138,7 +246,7 @@ function Pool() {
                   height: '20px',
                   marginRight: '8px',
                 }}
-                src={TOKENLIST.tokenList[1].logoURI}
+                src={toTokenState?.logoURI ?? toToken.logoURI}
                 alt="token-logo"
               />
               <Typography
@@ -147,7 +255,7 @@ function Pool() {
                   fontWeight: 'bold',
                 }}
               >
-                ETH / USDC
+                {`${fromToken.symbol} / ${toToken.symbol}`}
               </Typography>
             </div>
             <div
@@ -158,10 +266,10 @@ function Pool() {
               }}
             >
               <Typography style={{ fontSize: '16px' }}>
-                Your total pool tokens:
+                Your total LP tokens:
               </Typography>
               <Typography style={{ fontSize: '16px' }}>
-                0.000000001087
+                {formatUnits(totalLPAmount, 18)}
               </Typography>
             </div>
             <div
@@ -171,10 +279,12 @@ function Pool() {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography style={{ fontSize: '16px' }}>Pooled ETH:</Typography>
+              <Typography style={{ fontSize: '16px' }}>
+                Pooled {fromToken.symbol}:
+              </Typography>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
-                  0.00000603019
+                  {formatUnits(pooledETH, 18)}
                 </Typography>
                 <img
                   style={{
@@ -182,7 +292,7 @@ function Pool() {
                     height: '20px',
                     marginRight: '-8px',
                   }}
-                  src={TOKENLIST.tokenList[0].logoURI}
+                  src={fromTokenState?.logoURI ?? fromToken.logoURI}
                   alt="token-logo"
                 />
               </div>
@@ -194,10 +304,12 @@ function Pool() {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography style={{ fontSize: '16px' }}>Pooled USDC:</Typography>
+              <Typography style={{ fontSize: '16px' }}>
+                Pooled {toToken.symbol}:
+              </Typography>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <Typography style={{ marginRight: '8px', fontSize: '16px' }}>
-                  0.00000603019
+                  {formatUnits(pooledToken, tokenDecimals)}
                 </Typography>
                 <img
                   style={{
@@ -205,7 +317,7 @@ function Pool() {
                     height: '20px',
                     marginRight: '-8px',
                   }}
-                  src={TOKENLIST.tokenList[1].logoURI}
+                  src={toTokenState?.logoURI ?? toToken.logoURI}
                   alt="token-logo"
                 />
               </div>
@@ -220,7 +332,9 @@ function Pool() {
               <Typography style={{ fontSize: '16px' }}>
                 Your pool share:
               </Typography>
-              <Typography style={{ fontSize: '16px' }}>0.000242%</Typography>
+              <Typography style={{ fontSize: '16px' }}>
+                {sharesPercent}%
+              </Typography>
             </div>
             <PrimaryContainedButton
               width="100%"

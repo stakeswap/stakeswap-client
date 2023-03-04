@@ -1,3 +1,5 @@
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-lone-blocks */
@@ -6,7 +8,7 @@
 import { BigNumber, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import invariant from 'invariant';
-import { atom, Getter, Setter, WritableAtom } from 'jotai';
+import { atom, Getter, PrimitiveAtom, Setter, WritableAtom } from 'jotai';
 import { Pair, Pair__factory, Staking, Staking__factory } from '../typechain';
 import { IERC20 } from '../typechain/ERC20';
 import { ERC20__factory } from '../typechain/factories/lib/openzeppelin-contracts/contracts/token/ERC20';
@@ -28,7 +30,7 @@ const DEFAULT_LOGO_URL =
   'https://tokens.1inch.io/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984.png';
 
 // CONTRACTS
-export const sortedAtom = atom<boolean>(false);
+export const sortedAtom = atom<null | boolean>(null);
 export const pairAtom = atom<null | Pair>(null);
 export const stakingAtom = atom<null | Staking>(null);
 export type TokenState = Token & {
@@ -36,14 +38,111 @@ export type TokenState = Token & {
   isETH: boolean;
   approved: boolean;
   permitable: boolean;
+  isLP?: boolean;
+  isSTK?: boolean;
   permitSignature?: Signature;
 };
+
+// PAIR STATE
+export const pairStateAtom = atom<null | {
+  token0: string;
+  token1: string;
+  r0: BigNumber;
+  r1: BigNumber;
+  ethReserve: BigNumber;
+  tokenReserve: BigNumber;
+  totalSupply: BigNumber;
+  stakedWETHAmount: BigNumber;
+}>(null);
+
+// STAKING STATE
+type StakingStateType = {
+  lpBalance: BigNumber; // LP that Staking holds
+  totalSupply: BigNumber; // total supply of STK
+  stakedETH: BigNumber; // amount of ETH staked for STK
+};
+export const stakingStateAtom = atom<
+  null | StakingStateType,
+  [StakingStateType],
+  void
+>(null, async (get, set, stakingState) => {
+  set(stakingStateAtom, stakingState);
+
+  // load unstaking data
+  const signer = get(signerAtom);
+  const router = get(routerAtom);
+  const fromTokenState = get(fromTokenStateAtom);
+  const toTokenState = get(toTokenStateAtom);
+  const stakingTokenState = get(stakingTokenStateAtom);
+  const WETH = get(WETHAtom);
+
+  if (
+    !signer ||
+    !router ||
+    !fromTokenState ||
+    !toTokenState ||
+    !WETH ||
+    !stakingTokenState
+  ) {
+    console.log('not specified...');
+    return;
+  }
+  if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+    console.log('no approval data...');
+    return;
+  }
+
+  const unstakingData = stakingTokenState.balance.eq(0)
+    ? undefined
+    : stakingTokenState.approved
+    ? await router.callStatic
+        .unstake(
+          fromTokenState.isETH ? WETH.address : fromTokenState.address,
+          toTokenState.isETH ? WETH.address : toTokenState.address,
+          stakingTokenState.balance,
+          getDeadline(signer),
+        )
+        .catch((err) => {
+          console.error('Failed to call unstake', err);
+          return undefined;
+        })
+    : stakingTokenState.permitSignature
+    ? await router.callStatic
+        .unstakeWithPermit(
+          fromTokenState.isETH ? WETH.address : fromTokenState.address,
+          toTokenState.isETH ? WETH.address : toTokenState.address,
+          stakingTokenState.balance,
+          getDeadline(signer),
+          true,
+          stakingTokenState.permitSignature.v,
+          stakingTokenState.permitSignature.r,
+          stakingTokenState.permitSignature.s,
+        )
+        .catch((err) => {
+          console.error('Failed to call unstakeWithPermit', err);
+          return undefined;
+        })
+    : undefined;
+
+  if (!unstakingData) return;
+
+  set(unstakingDataAtom, unstakingData);
+});
+
+export const unstakingDataAtom = atom<null | {
+  lp: BigNumber; // amount of LP token that staker will receive after unstake
+  ethAmount: BigNumber; // total amount of ETH redeemd (Note that ethAmount = poolETHAmount + rewardToStaker)
+  poolETHAmount: BigNumber; // amount of ETH that pool receives
+  rewardToStaker: BigNumber; // amount of ETH that staker receives
+}>(null);
 
 // TOKEN STATE
 export const fromTokenStateAtom = atom<null | TokenState>(null);
 export const toTokenStateAtom = atom<null | TokenState>(null);
 export const lpTokenStateAtom = atom<null | TokenState>(null);
 export const stakingTokenStateAtom = atom<null | TokenState>(null);
+
+export type TokenStateAtomType = PrimitiveAtom<TokenState | null>;
 
 // TOKEN DATA
 export interface Token {
@@ -111,12 +210,15 @@ function createTokenWrite(
   },
 ) {
   return async (get: Getter, set: Setter, token: Token) => {
+    // remove unstaking data. it will be filled when stakingState is loaded
+    set(unstakingDataAtom, null);
+
     const { tokenAtom, tokenStateAtom } = f();
     const signer = get(signerAtom)!;
     invariant(signer, 'signer must not be null');
 
     set(tokenAtom, token);
-    const isETH =
+    const _isETH =
       token.address === ethers.constants.AddressZero ||
       token.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     const router = get(routerAtom)!;
@@ -137,10 +239,10 @@ function createTokenWrite(
 
     const tokenState: TokenState = {
       ...token,
-      isETH,
+      isETH: _isETH,
       ...(await loadTokenBalance(
-        isETH,
-        isETH ? undefined : ERC20__factory.connect(token.address, signer),
+        _isETH,
+        _isETH ? undefined : ERC20__factory.connect(token.address, signer),
       )),
     };
     set(tokenStateAtom, tokenState);
@@ -184,26 +286,55 @@ function createTokenWrite(
       symbol: `LP-${fromTokenState.symbol}-${toTokenState.symbol}`,
       isETH: false,
       logoURI: DEFAULT_LOGO_URL,
+      isLP: true,
       ...(await loadTokenBalance(false, pair)),
     });
+
+    const [r0, r1] = await pair.getReserves();
+    const token0 = await pair.token0();
+    const [ethReserve, tokenReserve] = sortValueIfSorted(
+      token0.toLowerCase() === WETH.address.toLowerCase(),
+      r0,
+      r1,
+    );
+    const pairState = {
+      ethReserve,
+      tokenReserve,
+      token0: await pair.token0(),
+      token1: await pair.token1(),
+      r0,
+      r1,
+      totalSupply: await pair.totalSupply(),
+      stakedWETHAmount: await pair.stakedWETHAmount(),
+    };
+    set(pairStateAtom, pairState);
 
     // set staking contract and STK token state
     const stakingAddress = await factory.getStaking(tokenA, tokenB);
     const staking = Staking__factory.connect(stakingAddress, signer);
     set(stakingAtom, staking);
-    set(stakingTokenStateAtom, {
+    const stakingTokenState = {
       address: stakingAddress,
       decimals: 18,
       symbol: `STK-${token0State.symbol}-${token1State.symbol}`,
       isETH: false,
       logoURI: DEFAULT_LOGO_URL,
+      isSTK: true,
       ...(await loadTokenBalance(false, staking)),
+    };
+    set(stakingTokenStateAtom, stakingTokenState);
+    set(stakingStateAtom, {
+      lpBalance: await pair.balanceOf(staking.address),
+      totalSupply: await staking.totalSupply(),
+      stakedETH: await staking.stakedETH(),
     });
 
     console.log('pair updated', {
       pair: pair.address,
       staking: staking.address,
       pairTotalSupply: formatUnits(await pair.totalSupply(), 18),
+      ethReserve: formatUnits(pairState.ethReserve, 18),
+      tokenReserve: formatUnits(pairState.tokenReserve, 18),
       stakingTotalSupply: formatUnits(await staking.totalSupply(), 18),
       lpTokenStateAtom: get(lpTokenStateAtom),
       stakingTokenStateAtom: get(stakingTokenStateAtom),
@@ -329,6 +460,7 @@ async function runTestScenario(get: Getter, set: Setter) {
       await tx.wait(2);
       set(toTokenAtom, toToken); // this invoke updating balance of tokens (from, to, lp, staking)
       await sleep(2); // wait 2 sec...
+      console.log('LIQUIDITY ADDED');
     }
   }
 
@@ -433,3 +565,16 @@ export function sortValue<T>(
 ): [T, T] {
   return sortValueIfSorted(isSorted(token0, token1), valueA, valueB);
 }
+
+export function isETH(token: string) {
+  return (
+    token.toLowerCase() === ethers.constants.AddressZero ||
+    token.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+  );
+}
+
+export function isWETH(token: string) {
+  return token.toLowerCase() === '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+}
+
+export const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';

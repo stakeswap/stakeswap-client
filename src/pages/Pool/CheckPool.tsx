@@ -1,14 +1,145 @@
 import { Typography } from '@mui/material';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { useAtom } from 'jotai';
+import { BigNumber, FixedNumber } from 'ethers';
+import { formatUnits } from 'ethers/lib/utils';
 import { PrimaryContainedButton } from '../../components/util/button';
 import TOKENLIST from '../../resources/token-list.json';
 import ETHUSDCPair from '../../assets/eth-usdc.png';
 import MotionGraphic from '../../assets/cooking-motion-graphic.gif';
 import { secondary } from '../../components/util/colors';
+import {
+  fromTokenAtom,
+  fromTokenStateAtom,
+  generateSignature,
+  getDeadline,
+  lpTokenStateAtom,
+  pairAtom,
+  pairStateAtom,
+  routerAtom,
+  signerAddressAtom,
+  signerAtom,
+  sortedAtom,
+  stakingStateAtom,
+  stakingTokenStateAtom,
+  toTokenAtom,
+  toTokenStateAtom,
+  unstakingDataAtom,
+  WETHAtom,
+} from '../../contracts';
 
 export default function CheckPool() {
   const history = useHistory();
+
+  const [fromToken] = useAtom(fromTokenAtom);
+  const [toToken, setToToken] = useAtom(toTokenAtom);
+  const [signer] = useAtom(signerAtom);
+  const [signerAddress] = useAtom(signerAddressAtom);
+  const [fromTokenState] = useAtom(fromTokenStateAtom);
+  const [toTokenState] = useAtom(toTokenStateAtom);
+  const [lpTokenState] = useAtom(lpTokenStateAtom);
+  const [stakingTokenState, setStakingTokenState] = useAtom(
+    stakingTokenStateAtom,
+  );
+
+  const [pairState] = useAtom(pairStateAtom);
+  const [stakingState, setStakingState] = useAtom(stakingStateAtom);
+
+  const [WETH] = useAtom(WETHAtom);
+  const [router] = useAtom(routerAtom);
+  const [pair] = useAtom(pairAtom);
+  const [sorted] = useAtom(sortedAtom);
+  const [unstakingData] = useAtom(unstakingDataAtom);
+
+  useEffect(() => {
+    if (!toTokenState) setToToken(toToken);
+  }, [toTokenState, toToken, setToToken]);
+
+  const connected =
+    fromToken &&
+    toToken &&
+    signer &&
+    signerAddress &&
+    fromTokenState &&
+    toTokenState &&
+    lpTokenState &&
+    stakingTokenState &&
+    WETH &&
+    router &&
+    pair &&
+    pairState &&
+    stakingState &&
+    sorted !== null;
+
+  // request STK permit signature
+  useEffect(() => {
+    if (!connected) return;
+
+    if (!stakingTokenState.approved && !stakingTokenState.permitSignature) {
+      generateSignature(signer, router.address, stakingTokenState.address).then(
+        (sig) => {
+          // record signature
+          setStakingTokenState({
+            ...stakingTokenState,
+            permitSignature: sig,
+          });
+          // load unstaking data
+          setStakingState(stakingState);
+        },
+      );
+    }
+  }, [
+    connected,
+    router,
+    signer,
+    stakingTokenState,
+    stakingTokenState?.approved,
+    stakingTokenState?.permitSignature,
+    setStakingTokenState,
+    setStakingState,
+    stakingState,
+  ]);
+
+  const totalLPAmount =
+    !connected || stakingState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : lpTokenState.balance.add(
+          stakingState.lpBalance
+            .mul(stakingTokenState.balance)
+            .div(stakingState.totalSupply),
+        );
+
+  const pooledETH =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.ethReserve.mul(totalLPAmount).div(pairState.totalSupply);
+  const pooledToken =
+    !connected || pairState.totalSupply.eq(0)
+      ? BigNumber.from(0)
+      : pairState.tokenReserve.mul(totalLPAmount).div(pairState.totalSupply);
+
+  const tokenDecimals = !connected
+    ? 18
+    : fromTokenState.isETH
+    ? toTokenState.decimals
+    : fromTokenState.decimals;
+
+  // asume price
+  // TODO: fetch token price from coingecko
+  const priceETH = 1560;
+  const priceToken = 0.98;
+
+  const pooledETHUSD =
+    parseFloat(FixedNumber.fromValue(pooledETH, 18).toString()) * priceETH;
+  const pooledTokenUSD =
+    parseFloat(FixedNumber.fromValue(pooledToken, tokenDecimals).toString()) *
+    priceToken;
+  const totalPooledUSD = pooledETHUSD + pooledTokenUSD;
+
+  const rewardETH = unstakingData?.rewardToStaker ?? BigNumber.from(0);
+  const rewardETHUSD =
+    parseFloat(FixedNumber.fromValue(rewardETH, 18).toString()) * priceETH;
 
   return (
     <div
@@ -48,7 +179,7 @@ export default function CheckPool() {
                 height: '30px',
                 marginRight: '-8px',
               }}
-              src={TOKENLIST.tokenList[0].logoURI}
+              src={fromToken.logoURI}
               alt="token-logo"
             />
             <img
@@ -57,7 +188,7 @@ export default function CheckPool() {
                 height: '30px',
                 marginRight: '8px',
               }}
-              src={TOKENLIST.tokenList[1].logoURI}
+              src={toToken.logoURI}
               alt="token-logo"
             />
             <Typography
@@ -66,7 +197,7 @@ export default function CheckPool() {
                 fontWeight: 'bold',
               }}
             >
-              ETH / USDC
+              {fromToken.symbol} / {toToken.symbol}
             </Typography>
           </div>
           <PrimaryContainedButton
@@ -149,7 +280,7 @@ export default function CheckPool() {
                 </Typography>
               </div>
               <Typography style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                $ 0.20
+                $ {totalPooledUSD}
               </Typography>
               <div
                 style={{
@@ -194,7 +325,7 @@ export default function CheckPool() {
                       color: '#575757',
                     }}
                   >
-                    0.00000594
+                    {formatUnits(pooledETH, 18)}
                   </Typography>
                 </div>
                 <div
@@ -229,7 +360,7 @@ export default function CheckPool() {
                       color: '#575757',
                     }}
                   >
-                    0.1045
+                    {formatUnits(pooledToken, tokenDecimals)}
                   </Typography>
                 </div>
               </div>
@@ -253,7 +384,7 @@ export default function CheckPool() {
                 Staking Reward
               </Typography>
               <Typography style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                $ 0.01
+                $ {rewardETHUSD}
               </Typography>
               <div
                 style={{
@@ -298,7 +429,7 @@ export default function CheckPool() {
                       color: '#575757',
                     }}
                   >
-                    0.00000594
+                    {formatUnits(rewardETH, 18)}
                   </Typography>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import invariant from 'invariant';
-import { atom } from 'jotai';
+import { atom, PrimitiveAtom } from 'jotai';
 
 import DEPLOYMENT from '../contract-deployment.json';
 import {
@@ -14,7 +14,7 @@ import {
   WETHInterface__factory,
 } from '../typechain';
 // eslint-disable-next-line import/no-cycle
-import { ETH, fromTokenAtom, toTokenAtom, USDC } from './token';
+import { ETH, fromTokenAtom, TokenState, toTokenAtom, USDC } from './token';
 
 console.log('DEPLOYMENT', DEPLOYMENT);
 
@@ -23,6 +23,8 @@ export const deploymentAtom = atom<null | typeof DEPLOYMENT.hardhat>(null);
 export const chainIdAtom = atom<null | number>(null);
 export const signerAtom = atom<null | ethers.providers.JsonRpcSigner>(null);
 export const signerAddressAtom = atom<null | string>(null);
+
+export type SignerAtomType = PrimitiveAtom<TokenState | null>;
 
 // COMMON CONTRACTS
 export const factoryAtom = atom<null | Factory>(null);

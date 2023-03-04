@@ -38,7 +38,7 @@ export async function generateSignature(
       Permit: PERMIT_TYPE,
     },
     {
-      owner: signer.getAddress(),
+      owner: await signer.getAddress(),
       spender,
       value: ethers.constants.MaxUint256,
       nonce: await tokenContract.nonces(signer.getAddress()),
