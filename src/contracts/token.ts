@@ -282,9 +282,23 @@ function createTokenWrite(
     const WETH = get(WETHAtom)!;
     const factory = await get(factoryAtom)!;
 
+    const pairAddress = await factory.getPair(
+      fromTokenState.isETH ? WETH.address : fromTokenState.address,
+      toTokenState.isETH ? WETH.address : toTokenState.address,
+    );
+    // short circuit if pair doesn't exist
+    if (pairAddress === ethers.constants.AddressZero) return;
+    const pair = Pair__factory.connect(pairAddress, signer);
+    set(pairAtom, pair);
+
     const tokenA = fromTokenState.isETH ? WETH.address : fromTokenState.address;
     const tokenB = toTokenState.isETH ? WETH.address : toTokenState.address;
-    const sorted = isSorted(tokenA, tokenB);
+    const sorted =
+      (await pair.token0()).toLowerCase() ===
+      (fromTokenState.isETH
+        ? WETH.address
+        : fromTokenState.address
+      ).toLowerCase();
     set(sortedAtom, sorted);
 
     const [token0State, token1State] = sortValueIfSorted(
@@ -293,14 +307,7 @@ function createTokenWrite(
       toTokenState,
     );
 
-    const pairAddress = await factory.getPair(tokenA, tokenB);
-
-    // short circuit if pair doesn't exist
-    if (pairAddress === ethers.constants.AddressZero) return;
-
     // set pair contract and LP token state
-    const pair = Pair__factory.connect(pairAddress, signer);
-    set(pairAtom, pair);
     set(lpTokenStateAtom, {
       address: pairAddress,
       decimals: 18,

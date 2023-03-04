@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
   alpha,
@@ -10,8 +11,7 @@ import {
 import { BigNumber, ContractTransaction, ethers, Signature } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useAtom } from 'jotai';
-import { throttle } from 'lodash';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import TokenSearchModal from '../../components/TokenSearchModal';
 import {
@@ -24,9 +24,11 @@ import {
   fromTokenStateAtom,
   generateSignature,
   getDeadline,
+  getOptimalAmountsToAddLiquidity,
   lpPermitSigAtom,
   lpTokenStateAtom,
   pairAtom,
+  pairStateAtom,
   routerAtom,
   signerAddressAtom,
   signerAtom,
@@ -66,6 +68,7 @@ export default function AddPool() {
   const [toTokenState] = useAtom(toTokenStateAtom);
   const [lpTokenState] = useAtom(lpTokenStateAtom);
   const [stakingTokenState] = useAtom(stakingTokenStateAtom);
+  const [pairState] = useAtom(pairStateAtom);
   const [lpPermitSig, setLpPermitSig] = useAtom(lpPermitSigAtom);
 
   const [WETH] = useAtom(WETHAtom);
@@ -81,86 +84,96 @@ export default function AddPool() {
     toTokenState &&
     lpTokenState &&
     stakingTokenState &&
+    WETH &&
+    router &&
+    pair &&
+    pairState &&
     sorted !== null;
 
   const [fromTokenAmountInput, _setFromTokenAmountInput] = useState('0');
   const [toTokenAmountInput, _setToTokenAmountInput] = useState('0');
 
   const [withStaking, setWithStaking] = useState(true);
-
   const handleWithStaking = () => {
     setWithStaking(!withStaking);
     setRewardAPR(0);
   };
 
-  const checkAndSetInput = debounce(
-    async (value: string, isFromTokenSet: boolean) => {
-      if (!connected) return;
-      let fromTokenAmount = isFromTokenSet ? value : fromTokenAmountInput;
-      let toTokenAmount = isFromTokenSet ? toTokenAmountInput : value;
+  const calcToAmount = debounce(async (fromTokenAmountInput: string) => {
+    if (!connected) return undefined;
+    const fromTokenAmount = parseUnits(
+      fromTokenAmountInput,
+      fromTokenState.decimals,
+    );
 
-      const [r0, r1] = await pair!.getReserves();
-      const [fromTokenReserve, toTokenReserve] = await sortValueIfSorted(
-        sorted,
-        r0,
-        r1,
-      );
+    const [fromTokenReserve, toTokenReserve] = sortValueIfSorted(
+      sorted,
+      pairState.r0,
+      pairState.r1,
+    );
 
-      const k = fromTokenReserve.mul(toTokenReserve);
-      const tooSmallK = k.lte(
-        parseUnits('1', fromTokenState.decimals + toTokenState.decimals),
-      );
+    if (fromTokenReserve.eq(0) && toTokenReserve.eq(0)) return undefined;
 
-      if (fromTokenReserve.eq(0) && toTokenReserve.eq(0)) {
-        return;
-      }
+    const {
+      amountAOptimal: fromTokenOptimalAmount,
+      amountBOptimal: toTokenOptimalAmount,
+    } = await getOptimalAmountsToAddLiquidity(
+      router,
+      fromTokenReserve,
+      toTokenReserve,
+      fromTokenAmount,
+      ethers.constants.MaxUint256,
+    );
 
-      if (isFromTokenSet) {
-        const maxToTokenAmount = await router!.quote(
-          parseUnits(fromTokenAmount.toString(), fromTokenState!.decimals),
-          fromTokenReserve,
-          toTokenReserve,
-        );
+    _setFromTokenAmountInput(
+      formatUnits(fromTokenOptimalAmount, fromTokenState.decimals),
+    );
+    _setToTokenAmountInput(
+      formatUnits(toTokenOptimalAmount, toTokenState.decimals),
+    );
 
-        if (
-          parseUnits(toTokenAmount.toString(), toTokenState!.decimals).gt(
-            maxToTokenAmount,
-          )
-        ) {
-          toTokenAmount = formatUnits(maxToTokenAmount, toTokenState!.decimals);
-        }
-      } else {
-        const maxFromTokenAmount = await router!.quote(
-          parseUnits(toTokenAmount.toString(), toTokenState!.decimals),
-          toTokenReserve,
-          fromTokenReserve,
-        );
+    return undefined;
+  }, 1000);
+  const calcFromAmount = debounce(async (toTokenAmountInput: string) => {
+    if (!connected) return undefined;
+    const toTokenAmount = parseUnits(toTokenAmountInput, toTokenState.decimals);
 
-        if (
-          parseUnits(fromTokenAmount.toString(), fromTokenState!.decimals).gt(
-            maxFromTokenAmount,
-          )
-        ) {
-          fromTokenAmount = formatUnits(
-            maxFromTokenAmount,
-            fromTokenState!.decimals,
-          );
-        }
-      }
+    const [fromTokenReserve, toTokenReserve] = sortValueIfSorted(
+      sorted,
+      pairState.r0,
+      pairState.r1,
+    );
 
-      if (isFromTokenSet) _setToTokenAmountInput(toTokenAmount);
-      else _setFromTokenAmountInput(fromTokenAmount);
-    },
-    1000,
-  );
+    if (fromTokenReserve.eq(0) && toTokenReserve.eq(0)) return undefined;
+
+    const {
+      amountAOptimal: toTokenOptimalAmount,
+      amountBOptimal: fromTokenOptimalAmount,
+    } = await getOptimalAmountsToAddLiquidity(
+      router,
+      toTokenReserve,
+      fromTokenReserve,
+      toTokenAmount,
+      ethers.constants.MaxUint256,
+    );
+
+    _setFromTokenAmountInput(
+      formatUnits(fromTokenOptimalAmount, fromTokenState.decimals),
+    );
+    _setToTokenAmountInput(
+      formatUnits(toTokenOptimalAmount, toTokenState.decimals),
+    );
+
+    return undefined;
+  }, 1000);
 
   const setFromTokenAmountInput = (v: string) => {
     _setFromTokenAmountInput(v);
-    checkAndSetInput(v, true);
+    calcToAmount(v);
   };
   const setToTokenAmountInput = (v: string) => {
     _setToTokenAmountInput(v);
-    checkAndSetInput(v, false);
+    calcFromAmount(v);
   };
 
   const addLiquidity = async () => {
@@ -212,27 +225,41 @@ export default function AddPool() {
 
       if (withStaking) {
         let sig: null | Signature = lpPermitSig;
-        if (!sig) {
-          sig = await generateSignature(
-            signer,
-            router!.address,
-            lpTokenState.address,
-          );
-          setLpPermitSig(sig);
-        }
 
-        tx = await router!.addLiquidityAndStakeETHWithPermit(
-          tokenAddress,
-          tokenAmount,
-          tooSmallK ? 0 : tokenAmount.mul(97).div(100),
-          tooSmallK ? 0 : ethAmount.mul(97).div(100),
-          await getDeadline(signer!),
-          sig.v,
-          sig.r,
-          sig.s,
-          { value: ethAmount },
-        );
+        if (lpTokenState.approved) {
+          tx = await router.addLiquidityAndStakeETH(
+            tokenAddress,
+            tokenAmount,
+            tooSmallK ? 0 : tokenAmount.mul(97).div(100),
+            tooSmallK ? 0 : ethAmount.mul(97).div(100),
+            getDeadline(signer),
+            { value: ethAmount },
+          );
+        } else {
+          if (!sig) {
+            sig = await generateSignature(
+              signer,
+              router!.address,
+              lpTokenState.address,
+            );
+            setLpPermitSig(sig);
+          }
+
+          console.log('call addLiquidityAndStakeETHWithPermit');
+          tx = await router!.addLiquidityAndStakeETHWithPermit(
+            tokenAddress,
+            tokenAmount,
+            tooSmallK ? 0 : tokenAmount.mul(97).div(100),
+            tooSmallK ? 0 : ethAmount.mul(97).div(100),
+            await getDeadline(signer!),
+            sig.v,
+            sig.r,
+            sig.s,
+            { value: ethAmount },
+          );
+        }
       } else {
+        console.log('call addLiquidityETH');
         tx = await router!.addLiquidityETH(
           tokenAddress,
           tokenAmount,
@@ -244,6 +271,7 @@ export default function AddPool() {
         );
       }
     } else {
+      console.log('call addLiquidity');
       tx = await router!.addLiquidity(
         fromTokenState!.isETH ? WETH!.address : fromTokenState!.address,
         toTokenState!.isETH ? WETH!.address : toTokenState!.address,

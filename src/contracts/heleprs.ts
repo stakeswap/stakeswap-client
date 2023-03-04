@@ -5,9 +5,9 @@
 
 // A helpers to send transaction
 
-import { ethers, Signature } from 'ethers';
+import { BigNumber, ethers, Signature } from 'ethers';
 import invariant from 'invariant';
-import { LP__factory } from '../typechain';
+import { LP__factory, Router } from '../typechain';
 import { sleepWhile } from './token';
 
 const PERMIT_TYPE = [
@@ -107,4 +107,38 @@ export async function isTokenSupportPermit(
     .catch(() => false);
 
   return permitable;
+}
+
+export async function getOptimalAmountsToAddLiquidity(
+  router: Router,
+  reserveA: BigNumber,
+  reserveB: BigNumber,
+  amountADesired: BigNumber,
+  amountBDesired: BigNumber,
+): Promise<{
+  amountAOptimal: BigNumber;
+  amountBOptimal: BigNumber;
+}> {
+  if (reserveA.eq(0) && reserveB.eq(0)) {
+    return {
+      amountAOptimal: amountADesired,
+      amountBOptimal: amountBDesired,
+    };
+  }
+
+  const amountBOptimal = await router.quote(amountADesired, reserveA, reserveB);
+
+  if (amountBOptimal.lte(amountBDesired)) {
+    return {
+      amountAOptimal: amountADesired,
+      amountBOptimal,
+    };
+  }
+
+  const amountAOptimal = await router.quote(amountBDesired, reserveB, reserveA);
+  invariant(amountAOptimal.lte(amountADesired), 'INSUFFICIENT');
+  return {
+    amountAOptimal,
+    amountBOptimal: amountBDesired,
+  };
 }
