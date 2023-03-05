@@ -266,7 +266,32 @@ function Pool() {
                 onClick={handleConnectWallet}
               />
             </div>
-          ) : !!lpTokenState && Number(lpTokenState.balance) > 0 ? (
+          ) : totalLPAmount.lte(1e7) ? (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                padding: '40px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <HighlightAltIcon
+                style={{ width: '40px', height: 'auto', marginBottom: '20px' }}
+              />
+              <Typography
+                style={{
+                  width: '300px',
+                  textAlign: 'center',
+                  fontSize: '18px',
+                }}
+              >
+                No liquidity found.
+              </Typography>
+            </div>
+          ) : (
             <div
               style={{
                 width: '100%',
@@ -412,31 +437,6 @@ function Pool() {
                   </Typography>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                padding: '40px 0',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <HighlightAltIcon
-                style={{ width: '40px', height: 'auto', marginBottom: '20px' }}
-              />
-              <Typography
-                style={{
-                  width: '300px',
-                  textAlign: 'center',
-                  fontSize: '18px',
-                }}
-              >
-                No liquidity found.
-              </Typography>
             </div>
           )}
         </div>
