@@ -116,10 +116,31 @@ export default function RemovePool() {
   const [sigReceived, setSigReceived] = useState(false);
 
   useEffect(() => {
-    if (connected && !sigReceived) {
-      write__stakingPermitSigLocalStorage();
-      setSigReceived(true);
-    }
+    if (!connected) return;
+    if (sigReceived) return;
+    if (stakingTokenState.approved) return;
+
+    (async () => {
+      if (stakingPermitSigLocalStorage) {
+        const isValid = await router.callStatic
+          .unstakeWithPermit(
+            fromTokenState.isETH ? WETH.address : fromTokenState.address,
+            toTokenState.isETH ? WETH.address : toTokenState.address,
+            stakingTokenState.balance,
+            getDeadline(signer),
+            true,
+            ...splitSignature(stakingPermitSigLocalStorage),
+          )
+          .then(() => true)
+          .catch(() => false);
+
+        if (isValid) {
+          setSigReceived(true);
+        } else {
+          write__stakingPermitSigLocalStorage();
+        }
+      }
+    })().catch(console.error);
   }, [
     unstakingData,
     write__stakingPermitSigLocalStorage,
@@ -127,6 +148,12 @@ export default function RemovePool() {
     connected,
     setSigReceived,
     sigReceived,
+    WETH,
+    fromTokenState,
+    router,
+    signer,
+    stakingTokenState,
+    toTokenState,
   ]);
 
   const totalLPAmount =
