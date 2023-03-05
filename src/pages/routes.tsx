@@ -1,9 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom';
 
 // utils
 import Navigation from '../components/Navigation';
-import Home from './Home';
 import Swap from './Swap';
 import Pool from './Pool';
 import AddPool from './Pool/AddPool';
@@ -15,7 +14,7 @@ function Routes() {
     <BrowserRouter>
       <Navigation />
       <Switch>
-        <Route component={Home} exact path="/" />
+        <Redirect exact from="/" to="/swaps" />
         <Route component={Swap} exact path="/swaps" />
         <Route component={Pool} exact path="/pools" />
         <Route component={AddPool} exact path="/pools/add" />

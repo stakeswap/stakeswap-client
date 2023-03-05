@@ -249,18 +249,6 @@ export default function RemovePool() {
           <Typography style={{ fontSize: '24px', textAlign: 'center' }}>
             Remove Liquidity
           </Typography>
-          <Typography
-            style={{
-              margin: '50px 0 24px 0',
-              color: primary,
-              fontSize: '12px',
-            }}
-          >
-            Tip: Removing pool ... Lorem ipsum dolor sit, amet consectetur
-            adipisicing elit. Error voluptate nobis impedit autem porro, quaerat
-            assumenda eos labore? Nesciunt at vel assumenda, unde dolores
-            delectus accusantium ut laboriosam nulla distinctio.
-          </Typography>
           <div style={{ display: 'flex' }}>
             <div style={{ width: '410px', marginRight: '16px' }}>
               <div
