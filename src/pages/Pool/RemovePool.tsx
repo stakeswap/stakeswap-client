@@ -113,14 +113,20 @@ export default function RemovePool() {
     stakingState &&
     sorted !== null;
 
+  const [sigReceived, setSigReceived] = useState(false);
+
   useEffect(() => {
-    if (!unstakingData && !stakingPermitSigLocalStorage)
+    if (connected && !sigReceived) {
       write__stakingPermitSigLocalStorage();
+      setSigReceived(true);
+    }
   }, [
     unstakingData,
     write__stakingPermitSigLocalStorage,
     stakingPermitSigLocalStorage,
     connected,
+    setSigReceived,
+    sigReceived,
   ]);
 
   const totalLPAmount =
