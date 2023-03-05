@@ -13,6 +13,8 @@ import {
 } from '../../contracts';
 import Logo from '../../assets/logo-with-typo.png';
 
+const DEV = process.env.NODE_ENV === 'development';
+
 const useStyles: any = makeStyles({
   root: {
     height: '64px',
@@ -62,7 +64,7 @@ export default function Navigation() {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x760' }], // 0x760 = 1888 = forked testnet
+        params: [{ chainId: DEV ? '0x760' : '0x1' }], // 0x760 = 1888 = forked testnet
       });
     } catch (switchErr: any) {
       if (switchErr.code === 4902) {
