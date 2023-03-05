@@ -32,6 +32,7 @@ import {
   stakingPermitSigLocalStorageAtom,
   write__stakingPermitSigLocalStorageAtom,
   splitSignature,
+  stakingAtom,
 } from '../../contracts';
 
 import CheckAddRemoveBackground from '../../assets/backgrounds/check-add-remove.png';
@@ -57,6 +58,7 @@ export default function RemovePool() {
   const [fromTokenState] = useAtom(fromTokenStateAtom);
   const [toTokenState] = useAtom(toTokenStateAtom);
   const [lpTokenState] = useAtom(lpTokenStateAtom);
+  const [staking] = useAtom(stakingAtom);
   const [stakingTokenState, setStakingTokenState] = useAtom(
     stakingTokenStateAtom,
   );
@@ -75,6 +77,21 @@ export default function RemovePool() {
   const [pair] = useAtom(pairAtom);
   const [sorted] = useAtom(sortedAtom);
   const [unstakingData] = useAtom(unstakingDataAtom);
+
+  useEffect(() => {
+    if (!stakingTokenState || !staking || !router || !signer) return;
+    if (stakingTokenState.approved) return;
+    (async () => {
+      if (
+        await (
+          await staking.allowance(signer.getAddress(), router.address)
+        ).gt(ethers.constants.MaxUint256.div(2))
+      ) {
+        return;
+      }
+      await staking.approve(router.address, ethers.constants.MaxUint256);
+    })().catch(console.error);
+  }, [signer, staking, stakingTokenState, router]);
 
   useEffect(() => {
     if (!toTokenState) setToToken(toToken);
